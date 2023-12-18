@@ -1,0 +1,5 @@
+/venv/
+.env
+.idea
+/echo_bot_struct/
+/RPS_bot/
