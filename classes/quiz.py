@@ -1,4 +1,4 @@
-from Telequiz.types.question import Question
+from .question import Question
 
 
 class Quiz:

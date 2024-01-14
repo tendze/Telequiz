@@ -4,9 +4,9 @@ from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
-from Telequiz.keyboards.menu_keyboards import main_menu_markup, my_profile_markup, cancel_markup
-from Telequiz.lexicon.LEXICON_RU import LEXICON
-from Telequiz.states.states import CreateQuizFSM
+from keyboards.menu_keyboards import main_menu_markup, my_profile_markup, cancel_markup
+from lexicon.LEXICON_RU import LEXICON
+from states.states import CreateQuizFSM
 
 rt = Router()
 

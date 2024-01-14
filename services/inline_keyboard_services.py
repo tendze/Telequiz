@@ -1,8 +1,8 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from Telequiz.types.question import Question
-from Telequiz.factories.variants import VariantsFactory
-from Telequiz.lexicon.LEXICON_RU import LEXICON
+from classes.question import Question
+from factories.variants import VariantsFactory
+from lexicon.LEXICON_RU import LEXICON
 
 edit_button_row = [InlineKeyboardButton(text=LEXICON['edit'], callback_data='edit')]
 cancel_edit_button_row = [InlineKeyboardButton(text=LEXICON['cancel_edit'], callback_data='cancel_edit')]
@@ -14,7 +14,9 @@ cancel_button_row = [InlineKeyboardButton(text=LEXICON['cancel'], callback_data=
 
 def create_constructor_inline_markup(question: Question = None,
                                      edit_mode: bool = False,
+                                     edit_question_button_visible: bool = False,
                                      delete_question_button_visible: bool = False,
+                                     ready_button_visible: bool = True,
                                      current_question_index: int = None,
                                      all_question_count: int = None) -> InlineKeyboardMarkup:
     result = []
@@ -29,14 +31,15 @@ def create_constructor_inline_markup(question: Question = None,
              InlineKeyboardButton(text=f'{current_question_index}/{all_question_count}', callback_data='question_index'),
              InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')]
         )
-    if not edit_mode:
+    if not edit_mode and edit_question_button_visible:
         result.append(edit_button_row)
-    else:
+    elif edit_mode:
         result.append(cancel_edit_button_row)
     result.append(new_question_button_row)
     if delete_question_button_visible:
         result.append(delete_question_button_row)
-    result.append(ready_button_row)
+    if ready_button_visible:
+        result.append(ready_button_row)
     result.append(cancel_button_row)
     return InlineKeyboardMarkup(inline_keyboard=result)
 

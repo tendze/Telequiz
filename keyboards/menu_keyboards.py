@@ -1,4 +1,4 @@
-from Telequiz.lexicon.LEXICON_RU import LEXICON
+from lexicon.LEXICON_RU import LEXICON
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 

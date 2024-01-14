@@ -1,6 +1,6 @@
 from aiogram import Bot
 from aiogram.types import BotCommand
-from Telequiz.lexicon.LEXICON_RU import LEXICON_COMMANDS
+from lexicon.LEXICON_RU import LEXICON_COMMANDS
 
 
 async def set_main_commands(bot: Bot):
