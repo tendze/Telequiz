@@ -1,8 +1,10 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+import factories
+from math import ceil
 from classes.question import Question
-from factories.variants import VariantsFactory
 from lexicon.LEXICON_RU import LEXICON
+from database.db_services import Types
 
 edit_button_row = [InlineKeyboardButton(text=LEXICON['edit'], callback_data='edit')]
 cancel_edit_button_row = [InlineKeyboardButton(text=LEXICON['cancel_edit'], callback_data='cancel_edit')]
@@ -10,6 +12,9 @@ new_question_button_row = [InlineKeyboardButton(text=LEXICON['new_question'], ca
 delete_question_button_row = [InlineKeyboardButton(text=LEXICON['delete_question'], callback_data='delete_question')]
 ready_button_row = [InlineKeyboardButton(text=LEXICON['ready'], callback_data='ready')]
 cancel_button_row = [InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel')]
+back_button_row = [InlineKeyboardButton(text=LEXICON['go_back'], callback_data='go_back')]
+backwards_button = InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward')
+forward_button = InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')
 
 
 def create_constructor_inline_markup(question: Question = None,
@@ -23,13 +28,15 @@ def create_constructor_inline_markup(question: Question = None,
     if question is not None:
         for i in range(len(question.variants)):
             result.append([InlineKeyboardButton(
-                text=LEXICON['cross_emoji'] + question.variants[i].lstrip(LEXICON['tick']) if edit_mode else question.variants[i],
-                callback_data=VariantsFactory(var_number=i).pack())]
+                text=LEXICON['cross_emoji'] + question.variants[i].lstrip(LEXICON['tick']) if edit_mode else
+                question.variants[i],
+                callback_data=factories.variants.VariantsFactory(var_number=i).pack())]
             )
         result.append(
-            [InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward'),
-             InlineKeyboardButton(text=f'{current_question_index}/{all_question_count}', callback_data='question_index'),
-             InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')]
+            [backwards_button,
+             InlineKeyboardButton(text=f'{current_question_index}/{all_question_count}',
+                                  callback_data='question_index'),
+             forward_button]
         )
     if not edit_mode and edit_question_button_visible:
         result.append(edit_button_row)
@@ -44,47 +51,26 @@ def create_constructor_inline_markup(question: Question = None,
     return InlineKeyboardMarkup(inline_keyboard=result)
 
 
-def create_selected_button_markup(markup: InlineKeyboardMarkup, *selected_button_data: str) -> InlineKeyboardMarkup:
-    keyboard: list[list[InlineKeyboardButton]] = markup.inline_keyboard
-    for i in range(len(keyboard)):
-        for j in range(len(keyboard[i])):
-            if keyboard[i][j].callback_data in selected_button_data:
-                button_text = keyboard[i][j].text
-                keyboard[i][j].text = button_text.lstrip(LEXICON['tick']) if button_text.startswith(LEXICON['tick'])\
-                    else LEXICON['tick'] + button_text
+def create_list_of_q_or_t_markup(type_: Types,
+                                 height: int = 5,
+                                 page: int = 1,
+                                 back_button_visible: bool = True,
+                                 **kwargs) -> InlineKeyboardMarkup:
+    keyboard: list[list[InlineKeyboardButton]] = []
+    total_pages = ceil(len(kwargs) / height)
+    first_index_of_page = (page-1) * height
+    kwargs_list = [x for x in kwargs.items()]
+    for i in range(first_index_of_page, min(first_index_of_page + height, len(kwargs))):
+        keyboard.append([InlineKeyboardButton(text=kwargs_list[i][1],
+                                              callback_data=factories.user_records.UserRecordsFactory(
+                                                  record_id=kwargs_list[i][0],
+                                                  type_=type_.value).pack())])
+
+    if len(kwargs) > height:
+        keyboard.append([backwards_button,
+                         InlineKeyboardButton(text=f'{page if page < total_pages else total_pages}/{total_pages}',
+                                              callback_data='question_index'),
+                         forward_button])
+    if back_button_visible:
+        keyboard.append(back_button_row)
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
-
-
-def is_any_button_checked(markup: InlineKeyboardMarkup) -> tuple[list[str], bool]:
-    keyboard: list[list[InlineKeyboardButton]] = markup.inline_keyboard
-    keyboard.pop()
-    flag: bool = False
-    right_answers: list[str] = []
-    for row in keyboard:
-        for button in row:
-            if button.text.startswith("✓ "):
-                flag = True
-                right_answers.append(button.text.lstrip('✓ '))
-    return right_answers, flag
-
-
-def clean_variants_markup(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
-    keyboard: list[list[InlineKeyboardButton]] = markup.inline_keyboard
-    for i in range(len(keyboard)):
-        for j in range(len(keyboard[i])):
-            if keyboard[i][j].text.startswith('✓ '):
-                keyboard[i][j].text = keyboard[i][j].text.lstrip('✓ ')
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
-
-
-def is_checked_variants_right(markup: InlineKeyboardMarkup, right_answers: list[str]) -> bool:
-    keyboard: list[list[InlineKeyboardButton]] = markup.inline_keyboard
-    right_answer_checked_count: int = 0
-    for row in keyboard:
-        for button in row:
-            text = button.text.lstrip("✓ ")
-            if button.text != text and text in right_answers:
-                right_answer_checked_count += 1
-    if right_answer_checked_count != len(right_answers):
-        return False
-    return True

@@ -34,19 +34,15 @@ async def initialize_db():
             use_db_query = "USE {db_name}".format(db_name=mysql_db_name)
             cursor.execute(create_db_query)
             cursor.execute(use_db_query)
-            create_q_and_t_table_query = "CREATE TABLE IF NOT EXISTS Quiz_and_test(" \
-                                         "id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT," \
-                                         "name VARCHAR(100)," \
-                                         "type ENUM('Q', 'T')" \
-                                         ")"
             create_users_table_query = "CREATE TABLE IF NOT EXISTS User(" \
+                                       "record_id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT," \
                                        "tg_id BIGINT UNSIGNED NOT NULL," \
-                                       "quiz_or_test_id INT UNSIGNED," \
-                                       "FOREIGN KEY (quiz_or_test_id) REFERENCES Quiz_and_test(id)" \
+                                       "name VARCHAR(100)," \
+                                       "type ENUM('Q', 'T')" \
                                        ")"
             create_questions_table_query = "CREATE TABLE IF NOT EXISTS Question(" \
                                            "id INT UNSIGNED," \
-                                           "FOREIGN KEY (id) REFERENCES Quiz_and_test(id)," \
+                                           "FOREIGN KEY (id) REFERENCES User(record_id)," \
                                            "question_text VARCHAR(200)," \
                                            "variants_id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT" \
                                            ")"
@@ -60,7 +56,6 @@ async def initialize_db():
                                                 "FOREIGN KEY (question_id) REFERENCES Question(variants_id)," \
                                                 "encrypted_text VARCHAR(228)" \
                                                 ")"
-            cursor.execute(create_q_and_t_table_query)
             cursor.execute(create_users_table_query)
             cursor.execute(create_questions_table_query)
             cursor.execute(create_variants_table_query)
@@ -71,17 +66,15 @@ async def insert_questions(user_tg_id: int, name: str, questions: list[Question]
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
-            cursor.execute("INSERT INTO Quiz_and_test(name, type) VALUES(%s, %s)", (name, type_.value))
+            cursor.execute("INSERT INTO User(tg_id, name, type) VALUES(%s, %s, %s)", (user_tg_id, name, type_.value))
             conn.commit()
 
-            cursor.execute("SELECT LAST_INSERT_ID() FROM Quiz_and_test")
-            last_q_and_t_id = cursor.fetchone()['LAST_INSERT_ID()']
-            cursor.execute("INSERT INTO User(tg_id, quiz_or_test_id) VALUES(%s, %s)", (user_tg_id, last_q_and_t_id))
-            conn.commit()
+            cursor.execute("SELECT LAST_INSERT_ID() FROM User")
+            last_user_record_id = cursor.fetchone()['LAST_INSERT_ID()']
 
             for question in questions:
                 cursor.execute("INSERT INTO Question(id, question_text) VALUES(%s, %s)",
-                               (last_q_and_t_id, question.question))
+                               (last_user_record_id, question.question))
                 conn.commit()
                 cursor.execute("SELECT LAST_INSERT_ID() FROM Question")
                 last_variant_id = cursor.fetchone()['LAST_INSERT_ID()']
@@ -93,3 +86,12 @@ async def insert_questions(user_tg_id: int, name: str, questions: list[Question]
                     cursor.execute("INSERT INTO Right_variant(question_id, encrypted_text) VALUES(%s, %s)",
                                    (last_variant_id, encrypted_variant))
                 conn.commit()
+
+
+async def get_user_type_names(tg_id: int, type_: Types) -> dict[int, str]:
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT record_id, name FROM User WHERE tg_id = %s AND type = %s", (tg_id, type_.value))
+            user_q_or_t_id = cursor.fetchall()
+            return user_q_or_t_id

@@ -3,12 +3,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram import F, Router
 
+import factories
 from states.states import CreateQuizFSM
 from lexicon.LEXICON_RU import LEXICON
 from keyboards.menu_keyboards import main_menu_markup
 from classes.question import Question
-from services.inline_keyboard_services import create_constructor_inline_markup, create_selected_button_markup
-from factories.variants import VariantsFactory
+from services.inline_keyboard_services import create_constructor_inline_markup
 from database.db_services import insert_questions, Types
 
 rt = Router()
@@ -185,8 +185,10 @@ async def process_delete_question_button(cb: CallbackQuery, state: FSMContext):
 
 
 # Обработка нажания на варианты вопросов
-@rt.callback_query(VariantsFactory.filter(), StateFilter(CreateQuizFSM.constructor_menu_state))
-async def process_variants_press(cb: CallbackQuery, state: FSMContext, callback_data: VariantsFactory):
+@rt.callback_query(factories.variants.VariantsFactory.filter(), StateFilter(CreateQuizFSM.constructor_menu_state))
+async def process_variants_press(cb: CallbackQuery,
+                                 state: FSMContext,
+                                 callback_data: factories.variants.VariantsFactory):
     data = await state.get_data()
     questions: list[Question] = data.get('questions', [])
     curr_question_index = data['current_question_index']
@@ -207,8 +209,10 @@ async def process_variants_press(cb: CallbackQuery, state: FSMContext, callback_
 
 
 # Обработка удаления варианта вопроса
-@rt.callback_query(VariantsFactory.filter(), StateFilter(CreateQuizFSM.edit_variants_state))
-async def process_variants_delete_button(cb: CallbackQuery, state: FSMContext, callback_data: VariantsFactory):
+@rt.callback_query(factories.variants.VariantsFactory.filter(), StateFilter(CreateQuizFSM.edit_variants_state))
+async def process_variants_delete_button(cb: CallbackQuery,
+                                         state: FSMContext,
+                                         callback_data: factories.variants.VariantsFactory):
     data = await state.get_data()
     questions: list[Question] = data.get('questions', [])
     curr_question_index = data['current_question_index']
@@ -242,11 +246,12 @@ async def process_ready_button(cb: CallbackQuery, state: FSMContext):
     else:
         for question in questions:
             for index, variant in enumerate(question.variants):
-                print(index, question.question, question.variants, question.right_variants)
                 if variant.startswith(LEXICON['tick']):
                     v = variant.lstrip(LEXICON['tick'])
                     question.variants[index] = v
                     question.right_variants.add(v)
-            print()
         await insert_questions(cb.from_user.id, data['quiz_name'], questions, Types.Quiz)
+        await state.clear()
         await cb.answer("Квиз успешно создан!")
+        await cb.message.edit_text(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+

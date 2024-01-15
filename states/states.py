@@ -7,3 +7,7 @@ class CreateQuizFSM(StatesGroup):
     get_variants_state = State()
     constructor_menu_state = State()
     edit_variants_state = State()
+
+
+class MainMenuFSM(StatesGroup):
+    q_or_t_view = State()
