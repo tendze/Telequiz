@@ -104,7 +104,7 @@ async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
 @rt.callback_query(F.data == 'go_back', StateFilter(MainMenuFSM.q_or_t_view))
 async def process_go_back_press(cb: CallbackQuery, state: FSMContext):
     await state.clear()
-    await cb.message.edit_text(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    await cb.message.edit_text(text=LEXICON['my_profile'], reply_markup=my_profile_markup)
 
 
 @rt.callback_query(F.data == 'backward', StateFilter(MainMenuFSM.q_or_t_view))
