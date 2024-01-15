@@ -6,7 +6,7 @@ from aiogram.types import Message, CallbackQuery
 
 from keyboards.menu_keyboards import main_menu_markup, my_profile_markup, cancel_markup
 from lexicon.LEXICON_RU import LEXICON
-from states.states import CreateQuizFSM, MainMenuFSM
+from states.states import CreateQuizOrTestFSM, MainMenuFSM
 from services.inline_keyboard_services import create_list_of_q_or_t_markup
 from database.db_services import Types, get_user_type_names
 
@@ -46,13 +46,19 @@ async def process_back_press(cb: CallbackQuery):
 
 @rt.callback_query(F.data == "create_quiz", StateFilter(default_state))
 async def process_create_quiz_press(cb: CallbackQuery, state: FSMContext):
-    await cb.message.answer(text=f"<b>Придумайте и отправьте название квиза</b>\n\n"
-                                 f"В любой момент Вы можете прописать команду "
-                                 f"<b>/cancel</b> "
-                                 f" или нажать на кнопку \"{LEXICON['cancel']}\", "
-                                 "чтобы прекратить создавание квиза, но в таком случае квиз <u>не сохранится</u>",
+    await cb.message.answer(text=LEXICON['ask_for_quiz_name'],
                             reply_markup=cancel_markup)
-    await state.set_state(CreateQuizFSM.get_quiz_name_state)
+    await state.set_state(CreateQuizOrTestFSM.get_quiz_or_test_name_state)
+    await state.update_data(type=Types.Quiz)
+    await cb.answer()
+
+
+@rt.callback_query(F.data == "create_test", StateFilter(default_state))
+async def process_create_test_press(cb: CallbackQuery, state: FSMContext):
+    await cb.message.answer(text=LEXICON['ask_for_test_name'],
+                            reply_markup=cancel_markup)
+    await state.set_state(CreateQuizOrTestFSM.get_quiz_or_test_name_state)
+    await state.update_data(type=Types.Test)
     await cb.answer()
 
 
@@ -61,6 +67,26 @@ async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
     user_id: int = cb.from_user.id
     user_quiz_names = {str(record['record_id']): record['name'] for record in await get_user_type_names(user_id, Types.Quiz)}
     quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
+                                                    height=quiz_list_height,
+                                                    back_button_visible=True,
+                                                    **user_quiz_names)
+    if len(user_quiz_names) == 0:
+        await cb.message.edit_text(text="Вы еще ничего не создали", reply_markup=quiz_list_markup)
+    else:
+        await cb.message.edit_text(text="Ваши квизы📝", reply_markup=quiz_list_markup)
+        await state.update_data(user_quiz_names=user_quiz_names)
+        await state.update_data(current_page=1)
+        await state.update_data(total_pages=ceil(len(user_quiz_names) / quiz_list_height))
+    await state.set_state(MainMenuFSM.q_or_t_view)
+    await cb.answer()
+
+
+@rt.callback_query(F.data == "my_tests", StateFilter(default_state))
+async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
+    user_id: int = cb.from_user.id
+    user_quiz_names = {str(record['record_id']): record['name'] for record in
+                       await get_user_type_names(user_id, Types.Test)}
+    quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Test,
                                                     height=quiz_list_height,
                                                     back_button_visible=True,
                                                     **user_quiz_names)

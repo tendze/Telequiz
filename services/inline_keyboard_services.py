@@ -17,6 +17,7 @@ backwards_button = InlineKeyboardButton(text=LEXICON['backward'], callback_data=
 forward_button = InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')
 
 
+# Возвращает объект типа InlineKeyboardMarkup, представляющий из себя кнопки в меню создания квиза/теста
 def create_constructor_inline_markup(question: Question = None,
                                      edit_mode: bool = False,
                                      edit_question_button_visible: bool = False,
@@ -51,6 +52,7 @@ def create_constructor_inline_markup(question: Question = None,
     return InlineKeyboardMarkup(inline_keyboard=result)
 
 
+# Возвращает объект типа InlineKeyboardMarkup, представляющий из себя список созданных квизов/тестов
 def create_list_of_q_or_t_markup(type_: Types,
                                  height: int = 5,
                                  page: int = 1,

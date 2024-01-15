@@ -9,11 +9,13 @@ key = Fernet.generate_key()
 fernet = Fernet(key)
 
 
+# Класс, представляющий квиз/тест
 class Types(Enum):
     Quiz = 'Q'
     Test = 'T'
 
 
+# Получение соединения с БД
 def db_connection(db_name: str | None = None):
     connection = mysql.connect(
         host=mysql_host,
@@ -26,6 +28,7 @@ def db_connection(db_name: str | None = None):
     return connection
 
 
+# Инициализация БД
 async def initialize_db():
     conn = db_connection()
     with conn:
@@ -62,6 +65,7 @@ async def initialize_db():
             cursor.execute(create_right_variants_table_query)
 
 
+# Вставляет данные после в таблицы User, Question, Variant и Right_variant
 async def insert_questions(user_tg_id: int, name: str, questions: list[Question], type_: Types):
     conn = db_connection(mysql_db_name)
     with conn:
@@ -88,6 +92,7 @@ async def insert_questions(user_tg_id: int, name: str, questions: list[Question]
                 conn.commit()
 
 
+# Возващает словарь вида record_id: name, где record_id - айди записи, а name - название квиза/теста
 async def get_user_type_names(tg_id: int, type_: Types) -> dict[int, str]:
     conn = db_connection(mysql_db_name)
     with conn:

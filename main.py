@@ -2,11 +2,10 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.redis import RedisStorage, Redis
 
 from config_data.config import load_config, Config
 from keyboards.set_commands import set_main_commands
-from handlers import menu_handlers, create_quiz_handlers
+from handlers import menu_handlers, create_quiz_and_test_handlers
 from database.db_services import initialize_db
 
 
@@ -16,7 +15,7 @@ async def main():
     bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
     dp = Dispatcher()
 
-    dp.include_router(create_quiz_handlers.rt)
+    dp.include_router(create_quiz_and_test_handlers.rt)
     dp.include_router(menu_handlers.rt)
 
     await initialize_db()
