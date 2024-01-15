@@ -52,8 +52,8 @@ async def initialize_db():
                                           "variant_text VARCHAR(100)" \
                                           ")"
             create_right_variants_table_query = "CREATE TABLE IF NOT EXISTS Right_variant(" \
-                                                "question_id INT UNSIGNED," \
-                                                "FOREIGN KEY (question_id) REFERENCES Question(variants_id)," \
+                                                "id INT UNSIGNED," \
+                                                "FOREIGN KEY (id) REFERENCES Question(variants_id)," \
                                                 "encrypted_text VARCHAR(228)" \
                                                 ")"
             cursor.execute(create_users_table_query)
@@ -83,7 +83,7 @@ async def insert_questions(user_tg_id: int, name: str, questions: list[Question]
 
                 for right_variant in question.right_variants:
                     encrypted_variant = fernet.encrypt(right_variant.encode())
-                    cursor.execute("INSERT INTO Right_variant(question_id, encrypted_text) VALUES(%s, %s)",
+                    cursor.execute("INSERT INTO Right_variant(id, encrypted_text) VALUES(%s, %s)",
                                    (last_variant_id, encrypted_variant))
                 conn.commit()
 
