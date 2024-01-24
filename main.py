@@ -15,8 +15,8 @@ async def main():
     bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
     dp = Dispatcher()
 
-    dp.include_router(create_quiz_and_test_handlers.rt)
     dp.include_router(menu_handlers.rt)
+    dp.include_router(create_quiz_and_test_handlers.rt)
 
     await initialize_db()
     await set_main_commands(bot)

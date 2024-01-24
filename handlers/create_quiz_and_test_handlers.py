@@ -1,261 +1,98 @@
-from aiogram.filters import StateFilter, Command
+from aiogram import Router, F
+from aiogram.filters import StateFilter
+from aiogram.types import ContentType, Message, ReplyKeyboardRemove, CallbackQuery, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
-from aiogram import F, Router
 
-import factories
-from states.states import CreateQuizOrTestFSM
+from database.db_services import insert_questions, Types
+from classes.question import Question
 from lexicon.LEXICON_RU import LEXICON
 from keyboards.menu_keyboards import main_menu_markup
-from classes.question import Question
-from services.inline_keyboard_services import create_constructor_inline_markup
-from database.db_services import insert_questions, Types
+from services.inline_keyboard_services import time_limit_markup
+from states.states import CreateQuizOrTestFSM
+
+import json
 
 rt = Router()
 
 
-# Обработка команды /cancel
-@rt.message(Command(commands='cancel'), StateFilter(CreateQuizOrTestFSM))
-async def process_cancel_command(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
-
-
-# Обработка нажатия на кнопку "Отмена"
-@rt.callback_query(F.data == 'cancel', StateFilter(CreateQuizOrTestFSM))
-async def process_cancel_button(cb: CallbackQuery, state: FSMContext):
-    await state.clear()
-    await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
-    await cb.answer()
-
-
-# Получение названия квиза/теста
-@rt.message(F.text, StateFilter(CreateQuizOrTestFSM.get_quiz_or_test_name_state))
-async def process_name_get(message: Message, state: FSMContext):
-    if len(message.text) > 100:
-        await message.answer("Длина названия превышает 100 символов\n"
-                             "Введите название еще раз")
-    else:
-        await state.update_data(name=message.text)
-        await message.answer("Отлично, название получено!")
-        await message.answer(text='У вас пока нет вопросов, добавьте их',
-                             reply_markup=create_constructor_inline_markup(ready_button_visible=False))
-        await state.set_state(CreateQuizOrTestFSM.constructor_menu_state)
-
-
-# Если пользователь прислал не название
-@rt.message(StateFilter(CreateQuizOrTestFSM.get_quiz_or_test_name_state))
-async def process_not_quiz_name(message: Message, state: FSMContext):
-    await message.answer(text='Вы прислали точно не название\n'
-                              'Если хотите завершить создавание пропишите команду <b>/cancel</b>')
-
-
-# Добавление нового вопроса
-@rt.callback_query(F.data == 'new_question', StateFilter(CreateQuizOrTestFSM.constructor_menu_state))
-async def process_new_question_button(cb: CallbackQuery, state: FSMContext):
-    await state.set_state(CreateQuizOrTestFSM.get_question_state)
-    await cb.message.answer(text='Пришлите текст вопроса')
-    await cb.answer()
-
-
-# Получение текста вопроса
-@rt.message(F.text, StateFilter(CreateQuizOrTestFSM.get_question_state))
-async def process_question_get(message: Message, state: FSMContext):
-    await state.update_data(question=message.text)
-    await message.answer('Пришлите варианты вопроса, разделенные символом <b>";"</b>\n'
-                         'Например, вариант1;вариант2;... Не более 4 вариантов')
-    await state.set_state(CreateQuizOrTestFSM.get_variants_state)
-
-
-# Если прислали не текст вопроса
-@rt.message(StateFilter(CreateQuizOrTestFSM.get_question_state))
-async def process_not_question(message: Message, state: FSMContext):
-    await message.answer(text='Это точно не текст вопроса!')
-
-
-# Добавление вопросов в Storage
-@rt.message(F.text, StateFilter(CreateQuizOrTestFSM.get_variants_state))
-async def process_variants_get(message: Message, state: FSMContext):
-    data = await state.get_data()
-    questions: list[Question] = data.get('questions', [])
-    question = Question(question=data['question'], variants=[variant.strip(" ") for variant in message.text.split(';')])
-    questions.append(question)
-    await state.update_data(questions=questions)
-    await message.answer(text='Успешно добавлен новый вопрос!\n'
-                              'Не забудьте у каждого вопроса отметить правильные ответы')
-    await state.update_data(current_question_index=len(questions) - 1)
-    await message.answer(text=question.question,
-                         reply_markup=create_constructor_inline_markup(question, False, True, True, True, len(questions),
-                                                                       len(questions)))
-    await state.set_state(CreateQuizOrTestFSM.constructor_menu_state)
-
-
-# Если прислали не варианты вопросов
-@rt.message(StateFilter(CreateQuizOrTestFSM.get_variants_state))
-async def process_not_variants(message: Message):
-    await message.answer(text='Вы прислали точно не варианты ответов по требуемому шаблону!\n'
-                              'Если хотите завершить создавание пропишите команду <b>/cancel</b>')
-
-
-# Обработка перемещения по вопросам "Назад"
-@rt.callback_query(F.data == 'backward', StateFilter(CreateQuizOrTestFSM.constructor_menu_state))
-async def process_backwards_button(cb: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    questions: list[Question] = data.get('questions', [])
-    curr_question_index = data['current_question_index']
-    if curr_question_index != 0:
-        curr_question_index -= 1
-        question = questions[curr_question_index]
-        await state.update_data(current_question_index=curr_question_index)
-        await cb.message.edit_text(
-            text=question.question,
-            reply_markup=create_constructor_inline_markup(question, False, True, True, True, curr_question_index + 1,
-                                                          len(questions))
-        )
-    await cb.answer()
-
-
-# Обработка перемещения по вопросам "Вперед"
-@rt.callback_query(F.data == 'forward', StateFilter(CreateQuizOrTestFSM.constructor_menu_state))
-async def process_backwards_button(cb: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    questions: list[Question] = data.get('questions', [])
-    curr_question_index = data['current_question_index']
-    if curr_question_index != len(questions) - 1:
-        curr_question_index += 1
-        question = questions[curr_question_index]
-        await state.update_data(current_question_index=curr_question_index)
-        await cb.message.edit_text(
-            text=question.question,
-            reply_markup=create_constructor_inline_markup(question, False, True, True, True, curr_question_index + 1,
-                                                          len(questions))
-        )
-    await cb.answer()
-
-
-# Обработка кнопки "Редактировать"
-@rt.callback_query(F.data == 'edit', StateFilter(CreateQuizOrTestFSM.constructor_menu_state))
-async def process_edit_button(cb: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    questions: list[Question] = data.get('questions', [])
-    curr_question_index = data['current_question_index']
-    question = questions[curr_question_index]
-    await cb.message.edit_text(text=question.question,
-                               reply_markup=create_constructor_inline_markup(question, True, True, True, True,
-                                                                             curr_question_index + 1, len(questions)))
-    await state.set_state(CreateQuizOrTestFSM.edit_variants_state)
-
-
-# Обработка кнопки "Отменить редактирование"
-@rt.callback_query(F.data == 'cancel_edit', StateFilter(CreateQuizOrTestFSM.edit_variants_state))
-async def process_cancel_edit_button(cb: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    questions: list[Question] = data.get('questions', [])
-    curr_question_index = data['current_question_index']
-    question = questions[curr_question_index]
-    await cb.message.edit_text(text=question.question,
-                               reply_markup=create_constructor_inline_markup(question, False, True, True, True,
-                                                                             curr_question_index + 1, len(questions)))
-    await state.set_state(CreateQuizOrTestFSM.constructor_menu_state)
-
-
-# Удаление вопроса
-@rt.callback_query(F.data == 'delete_question', StateFilter(CreateQuizOrTestFSM.constructor_menu_state))
-async def process_delete_question_button(cb: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    questions: list[Question] = data.get('questions', [])
-    curr_question_index = data['current_question_index']
-    if len(questions) == 1:
-        questions.pop()
-        await cb.message.edit_text(text='У вас пока нет вопросов добавьте их',
-                                   reply_markup=create_constructor_inline_markup(ready_button_visible=False))
-    else:
-        questions.pop(curr_question_index)
-        if curr_question_index != 0:
-            curr_question_index -= 1
-        await state.update_data(current_question_index=curr_question_index)
+@rt.message(F.content_type == ContentType.WEB_APP_DATA, StateFilter(CreateQuizOrTestFSM.create_or_cancel_state))
+async def web_app(message: Message, state: FSMContext):
+    type_: Types = (await state.get_data())['type']
+    result = json.loads(message.web_app_data.data)
+    questions = [Question(question=q['question'],
+                          variants=q['variants'],
+                          right_variants=q['right_variants'],
+                          consider_partial_answers=q['consider_partial_answers'] == 1) for q in result['questions']]
+    if type_ == Types.Quiz:
+        await message.answer(text=LEXICON['choose_time_limit'], reply_markup=time_limit_markup)
+        await state.update_data(name=result['name'])
         await state.update_data(questions=questions)
-        await cb.message.edit_text(text=questions[curr_question_index].question,
-                                   reply_markup=create_constructor_inline_markup(questions[curr_question_index],
-                                                                                 False,
-                                                                                 True,
-                                                                                 True,
-                                                                                 True,
-                                                                                 curr_question_index + 1,
-                                                                                 len(questions)))
-    await cb.answer()
+        await state.set_state(CreateQuizOrTestFSM.get_time_limit_state)
+        return
+    try:
+        await insert_questions(user_tg_id=message.from_user.id,
+                               name=result['name'],
+                               questions=questions,
+                               type_=type_,
+                               quiz_timer=0)
+        await message.answer(text=f"Тест успешно создан!\n"
+                                  f"Данные сохранены в Вашем профиле.",
+                             reply_markup=ReplyKeyboardRemove())
+        await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    except Exception:
+        await message.answer(text="Произошла непредвиденная ошибка :(",
+                             reply_markup=ReplyKeyboardRemove())
+        await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    await state.clear()
 
 
-# Обработка нажания на варианты вопросов
-@rt.callback_query(factories.variants.VariantsFactory.filter(), StateFilter(CreateQuizOrTestFSM.constructor_menu_state))
-async def process_variants_press(cb: CallbackQuery,
-                                 state: FSMContext,
-                                 callback_data: factories.variants.VariantsFactory):
+@rt.callback_query(F.data == 'ready', StateFilter(CreateQuizOrTestFSM.get_time_limit_state))
+async def process_ready_press(cb: CallbackQuery, state: FSMContext):
+    timer_info = cb.message.reply_markup.inline_keyboard[0][2].text.split()
+    seconds = int(timer_info[0])
     data = await state.get_data()
-    questions: list[Question] = data.get('questions', [])
-    curr_question_index = data['current_question_index']
-    variant_text = questions[curr_question_index].variants[callback_data.var_number]
-    questions[curr_question_index].variants[callback_data.var_number] = \
-        variant_text.lstrip(LEXICON['tick']) if variant_text.startswith(LEXICON['tick']) \
-            else LEXICON['tick'] + variant_text
-    question = questions[curr_question_index]
-    await state.update_data(questions=questions)
-    await cb.message.edit_reply_markup(reply_markup=create_constructor_inline_markup(question,
-                                                                                     False,
-                                                                                     True,
-                                                                                     True,
-                                                                                     True,
-                                                                                     curr_question_index + 1,
-                                                                                     len(questions)))
-    await cb.answer()
+    try:
+        await insert_questions(user_tg_id=cb.from_user.id,
+                               name=data['name'],
+                               questions=data['questions'],
+                               type_=data['type'],
+                               quiz_timer=seconds)
+        await cb.message.answer(text="Квиз успешно создан!")
+        await cb.message.delete()
+        await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    except Exception:
+        await cb.message.answer(text="Произошла непредвиденная ошибка :(",
+                                reply_markup=ReplyKeyboardRemove())
+        await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    await state.clear()
 
 
-# Обработка удаления варианта вопроса
-@rt.callback_query(factories.variants.VariantsFactory.filter(), StateFilter(CreateQuizOrTestFSM.edit_variants_state))
-async def process_variants_delete_button(cb: CallbackQuery,
-                                         state: FSMContext,
-                                         callback_data: factories.variants.VariantsFactory):
-    data = await state.get_data()
-    questions: list[Question] = data.get('questions', [])
-    curr_question_index = data['current_question_index']
-    if len(questions[curr_question_index].variants) > 1:
-        del questions[curr_question_index].variants[callback_data.var_number]
-        await cb.message.edit_reply_markup(reply_markup=create_constructor_inline_markup(questions[curr_question_index],
-                                                                                         True,
-                                                                                         True,
-                                                                                         True,
-                                                                                         True,
-                                                                                         curr_question_index + 1,
-                                                                                         len(questions)))
-    else:
-        await cb.answer(text='Последний вопрос нельзя удалить\nВы можете только удалить вопрос полностью')
-    await state.update_data(questions=questions)
-
-
-# Обработка нажатия на кнопку "Готово". Вставляет в БД собранные данные
-@rt.callback_query(F.data == 'ready', StateFilter(CreateQuizOrTestFSM.constructor_menu_state))
-async def process_ready_button(cb: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    questions = data['questions']
-    type_: Types = data['type']
-    for index, question in enumerate(questions):
-        is_any_variant_ticked = False
-        for variant in question.variants:
-            if variant.startswith(LEXICON['tick']):
-                is_any_variant_ticked = True
-                break
-        if not is_any_variant_ticked:
-            await cb.answer(f'Вы не отметили правильные ответы у вопроса: {index + 1}')
-            break
-    else:
-        for question in questions:
-            for index, variant in enumerate(question.variants):
-                if variant.startswith(LEXICON['tick']):
-                    v = variant.lstrip(LEXICON['tick'])
-                    question.variants[index] = v
-                    question.right_variants.add(v)
-        await insert_questions(cb.from_user.id, data['name'], questions, type_=type_)
-        await state.clear()
-        await cb.answer(f"{'Квиз' if type_ == Types.Quiz else 'Тест'} успешно создан!")
-        await cb.message.edit_text(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
-
+@rt.callback_query(StateFilter(CreateQuizOrTestFSM.get_time_limit_state))
+async def process_time_limit_press(cb: CallbackQuery, state: FSMContext):
+    timer_info = cb.message.reply_markup.inline_keyboard[0][2].text.split()
+    seconds = int(timer_info[0])  # секунды
+    time = timer_info[1]  # минуты или секунды
+    if cb.data == 'double_backward':
+        if seconds >= 10:
+            seconds -= 5
+        else:
+            await cb.answer(text='Минимальное время - 5 секунд')
+    elif cb.data == 'backward':
+        if seconds >= 6:
+            seconds -= 1
+        else:
+            await cb.answer(text='Минимальное время - 5 секунд')
+    elif cb.data == 'forward':
+        if seconds <= 60:
+            seconds += 1
+        else:
+            await cb.answer('Максимальное время - 60 секунд')
+    elif cb.data == 'double_forward':
+        if seconds <= 55:
+            seconds += 5
+        else:
+            await cb.answer('Максимальное время - 60 секунд')
+    timer_info_inline_keyboard = cb.message.reply_markup.inline_keyboard
+    timer_info_inline_keyboard[0][2].text = str(seconds) + ' сек.'
+    timer_info_markup = InlineKeyboardMarkup(inline_keyboard=timer_info_inline_keyboard)
+    await cb.message.edit_reply_markup(reply_markup=timer_info_markup)

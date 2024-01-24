@@ -41,18 +41,20 @@ async def initialize_db():
                                        "record_id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT," \
                                        "tg_id BIGINT UNSIGNED NOT NULL," \
                                        "name VARCHAR(100)," \
-                                       "type ENUM('Q', 'T')" \
+                                       "type ENUM('Q', 'T')," \
+                                       "time_limit INT UNSIGNED" \
                                        ")"
             create_questions_table_query = "CREATE TABLE IF NOT EXISTS Question(" \
                                            "id INT UNSIGNED," \
                                            "FOREIGN KEY (id) REFERENCES User(record_id)," \
-                                           "question_text VARCHAR(200)," \
-                                           "variants_id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT" \
+                                           "question_text VARCHAR(100)," \
+                                           "variants_id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT," \
+                                           "consider_partial_answers bit" \
                                            ")"
             create_variants_table_query = "CREATE TABLE IF NOT EXISTS Variant(" \
                                           "id INT UNSIGNED," \
                                           "FOREIGN KEY (id) REFERENCES Question(variants_id)," \
-                                          "variant_text VARCHAR(100)" \
+                                          "variant_text VARCHAR(30)" \
                                           ")"
             create_right_variants_table_query = "CREATE TABLE IF NOT EXISTS Right_variant(" \
                                                 "id INT UNSIGNED," \
@@ -66,25 +68,29 @@ async def initialize_db():
 
 
 # Вставляет данные после в таблицы User, Question, Variant и Right_variant
-async def insert_questions(user_tg_id: int, name: str, questions: list[Question], type_: Types):
+async def insert_questions(user_tg_id: int,
+                           name: str,
+                           questions: list[Question],
+                           type_: Types,
+                           quiz_timer: int):
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
-            cursor.execute("INSERT INTO User(tg_id, name, type) VALUES(%s, %s, %s)", (user_tg_id, name, type_.value))
+            cursor.execute("INSERT INTO User(tg_id, name, type, time_limit) VALUES(%s, %s, %s, %s)",
+                           (user_tg_id, name, type_.value, 'NULL' if quiz_timer == 0 else quiz_timer))
             conn.commit()
 
             cursor.execute("SELECT LAST_INSERT_ID() FROM User")
             last_user_record_id = cursor.fetchone()['LAST_INSERT_ID()']
 
             for question in questions:
-                cursor.execute("INSERT INTO Question(id, question_text) VALUES(%s, %s)",
-                               (last_user_record_id, question.question))
+                cursor.execute("INSERT INTO Question(id, question_text, consider_partial_answers) VALUES(%s, %s, %s)",
+                               (last_user_record_id, question.question, 1 if question.consider_partial_answers == 1 else 0))
                 conn.commit()
                 cursor.execute("SELECT LAST_INSERT_ID() FROM Question")
                 last_variant_id = cursor.fetchone()['LAST_INSERT_ID()']
                 for variant in question.variants:
                     cursor.execute("INSERT INTO Variant(id, variant_text) VALUES(%s, %s)", (last_variant_id, variant))
-
                 for right_variant in question.right_variants:
                     encrypted_variant = fernet.encrypt(right_variant.encode())
                     cursor.execute("INSERT INTO Right_variant(id, encrypted_text) VALUES(%s, %s)",

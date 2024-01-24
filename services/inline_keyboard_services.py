@@ -15,6 +15,14 @@ cancel_button_row = [InlineKeyboardButton(text=LEXICON['cancel'], callback_data=
 back_button_row = [InlineKeyboardButton(text=LEXICON['go_back'], callback_data='go_back')]
 backwards_button = InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward')
 forward_button = InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')
+time_limit_markup = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text=LEXICON['double_backward'], callback_data='double_backward'),
+     InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward'),
+     InlineKeyboardButton(text='10 сек.', callback_data='timer'),
+     InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward'),
+     InlineKeyboardButton(text=LEXICON['double_forward'], callback_data='double_forward')],
+    [InlineKeyboardButton(text=LEXICON['ready'], callback_data='ready')]
+])
 
 
 # Возвращает объект типа InlineKeyboardMarkup, представляющий из себя кнопки в меню создания квиза/теста
@@ -60,7 +68,7 @@ def create_list_of_q_or_t_markup(type_: Types,
                                  **kwargs) -> InlineKeyboardMarkup:
     keyboard: list[list[InlineKeyboardButton]] = []
     total_pages = ceil(len(kwargs) / height)
-    first_index_of_page = (page-1) * height
+    first_index_of_page = (page - 1) * height
     kwargs_list = [x for x in kwargs.items()]
     for i in range(first_index_of_page, min(first_index_of_page + height, len(kwargs))):
         keyboard.append([InlineKeyboardButton(text=kwargs_list[i][1],
