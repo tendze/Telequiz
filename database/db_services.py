@@ -2,11 +2,7 @@ import pymysql as mysql
 from .config import mysql_db_name, mysql_db_username, mysql_db_password, mysql_host, mysql_port
 from classes.question import Question
 from enum import Enum
-from cryptography.fernet import Fernet
-
-
-key = Fernet.generate_key()
-fernet = Fernet(key)
+from encrypting.question_encripting import encrypt_text, decrypt_bytes
 
 
 # Класс, представляющий квиз/тест
@@ -92,17 +88,33 @@ async def insert_questions(user_tg_id: int,
                 for variant in question.variants:
                     cursor.execute("INSERT INTO Variant(id, variant_text) VALUES(%s, %s)", (last_variant_id, variant))
                 for right_variant in question.right_variants:
-                    encrypted_variant = fernet.encrypt(right_variant.encode())
+                    encrypted_variant = encrypt_text(right_variant)
                     cursor.execute("INSERT INTO Right_variant(id, encrypted_text) VALUES(%s, %s)",
                                    (last_variant_id, encrypted_variant))
                 conn.commit()
 
 
 # Возващает словарь вида record_id: name, где record_id - айди записи, а name - название квиза/теста
-async def get_user_type_names(tg_id: int, type_: Types) -> dict[int, str]:
+async def get_user_record_names(tg_id: int, type_: Types) -> dict[int, str]:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
             cursor.execute("SELECT record_id, name FROM User WHERE tg_id = %s AND type = %s", (tg_id, type_.value))
             user_q_or_t_id = cursor.fetchall()
             return user_q_or_t_id
+
+
+async def get_user_record_questions(record_id: int):
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT question_text, variants_id FROM question WHERE id = %s", record_id)
+            rows = cursor.fetchall()
+            for data in rows:
+                variants_id = data['variants_id']
+                cursor.execute("SELECT variant_text FROM variant WHERE id = %s", variants_id)
+                data['variants'] = [variant['variant_text'] for variant in cursor.fetchall()]
+                cursor.execute("SELECT encrypted_text FROM right_variant WHERE id = %s", variants_id)
+                data['right_variants'] = [decrypt_bytes(right_variant['encrypted_text'].encode())
+                                          for right_variant in cursor.fetchall()]
+            print(rows)

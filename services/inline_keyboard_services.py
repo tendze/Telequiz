@@ -84,3 +84,8 @@ def create_list_of_q_or_t_markup(type_: Types,
     if back_button_visible:
         keyboard.append(back_button_row)
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def create_confirmation_button(inline_keyboard: InlineKeyboardMarkup,
+                               record_id: int) -> InlineKeyboardMarkup:
+    pass

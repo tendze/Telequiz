@@ -57,7 +57,7 @@ async def process_ready_press(cb: CallbackQuery, state: FSMContext):
                                questions=data['questions'],
                                type_=data['type'],
                                quiz_timer=seconds)
-        await cb.message.answer(text="Квиз успешно создан!")
+        await cb.message.answer(text="Квиз успешно создан!", reply_markup=ReplyKeyboardRemove())
         await cb.message.delete()
         await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
     except Exception:
@@ -71,7 +71,6 @@ async def process_ready_press(cb: CallbackQuery, state: FSMContext):
 async def process_time_limit_press(cb: CallbackQuery, state: FSMContext):
     timer_info = cb.message.reply_markup.inline_keyboard[0][2].text.split()
     seconds = int(timer_info[0])  # секунды
-    time = timer_info[1]  # минуты или секунды
     if cb.data == 'double_backward':
         if seconds >= 10:
             seconds -= 5

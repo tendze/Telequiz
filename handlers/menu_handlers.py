@@ -4,12 +4,13 @@ from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 
-from keyboards.menu_keyboards import main_menu_markup, my_profile_markup, cancel_markup
+from keyboards.menu_keyboards import main_menu_markup, my_profile_markup
 from lexicon.LEXICON_RU import LEXICON
 from states.states import CreateQuizOrTestFSM, MainMenuFSM
 from services.inline_keyboard_services import create_list_of_q_or_t_markup
 from services.keyboard_services import create_quiz_markup, create_test_markup
-from database.db_services import Types, get_user_type_names
+from database.db_services import Types, get_user_record_names, get_user_record_questions
+from factories import user_records
 
 from math import ceil
 
@@ -74,7 +75,7 @@ async def cancel_button_press(message: Message, state: FSMContext):
 async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
     user_id: int = cb.from_user.id
     user_quiz_names = {str(record['record_id']): record['name'] for record in
-                       await get_user_type_names(user_id, Types.Quiz)}
+                       await get_user_record_names(user_id, Types.Quiz)}
     quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
                                                     height=quiz_list_height,
                                                     back_button_visible=True,
@@ -94,7 +95,7 @@ async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
 async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
     user_id: int = cb.from_user.id
     user_quiz_names = {str(record['record_id']): record['name'] for record in
-                       await get_user_type_names(user_id, Types.Test)}
+                       await get_user_record_names(user_id, Types.Test)}
     quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Test,
                                                     height=quiz_list_height,
                                                     back_button_visible=True,
