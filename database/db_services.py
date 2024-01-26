@@ -118,3 +118,21 @@ async def get_user_record_questions(record_id: int):
                 data['right_variants'] = [decrypt_bytes(right_variant['encrypted_text'].encode())
                                           for right_variant in cursor.fetchall()]
             print(rows)
+
+
+async def delete_user_record(record_id: int):
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute('SELECT variants_id FROM question WHERE id = %s', record_id)
+            to_delete_data = cursor.fetchall()
+            for data in to_delete_data:
+                variant_id = data['variants_id']
+                cursor.execute('DELETE FROM variant WHERE id = %s', variant_id)
+                conn.commit()
+                cursor.execute('DELETE FROM right_variant WHERE id = %s', variant_id)
+                conn.commit()
+            cursor.execute('DELETE FROM question WHERE id = %s', record_id)
+            conn.commit()
+            cursor.execute('DELETE FROM user WHERE record_id = %s', record_id)
+            conn.commit()

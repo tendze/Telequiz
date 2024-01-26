@@ -9,15 +9,13 @@ from lexicon.LEXICON_RU import LEXICON
 from states.states import CreateQuizOrTestFSM, MainMenuFSM
 from services.inline_keyboard_services import create_list_of_q_or_t_markup
 from services.keyboard_services import create_quiz_markup, create_test_markup
-from database.db_services import Types, get_user_record_names, get_user_record_questions
-from factories import user_records
+from database.db_services import Types, get_user_record_names
+from handlers.quiz_and_test_list_height_config import quiz_list_height, test_list_height
+
 
 from math import ceil
 
 rt = Router()
-
-quiz_list_height = 5
-test_list_height = 5
 
 
 @rt.message(CommandStart(), StateFilter(default_state))
@@ -108,47 +106,6 @@ async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
         await state.update_data(current_page=1)
         await state.update_data(total_pages=ceil(len(user_quiz_names) / quiz_list_height))
     await state.set_state(MainMenuFSM.q_or_t_view)
-    await cb.answer()
-
-
-@rt.callback_query(F.data == 'go_back', StateFilter(MainMenuFSM.q_or_t_view))
-async def process_go_back_press(cb: CallbackQuery, state: FSMContext):
-    await state.clear()
-    await cb.message.edit_text(text=LEXICON['my_profile'], reply_markup=my_profile_markup)
-
-
-@rt.callback_query(F.data == 'backward', StateFilter(MainMenuFSM.q_or_t_view))
-async def process_backwards_press(cb: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    current_page = data['current_page']
-    user_quiz_names = data['user_quiz_names']
-    if current_page > 1:
-        current_page -= 1
-        quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
-                                                        height=quiz_list_height,
-                                                        page=current_page,
-                                                        back_button_visible=True,
-                                                        **user_quiz_names)
-        await cb.message.edit_reply_markup(reply_markup=quiz_list_markup)
-        await state.update_data(current_page=current_page)
-    await cb.answer()
-
-
-@rt.callback_query(F.data == 'forward', StateFilter(MainMenuFSM.q_or_t_view))
-async def process_forward_press(cb: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    current_page = data['current_page']
-    user_quiz_names = data['user_quiz_names']
-    total_pages = data['total_pages']
-    if current_page < total_pages:
-        current_page += 1
-        quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
-                                                        height=quiz_list_height,
-                                                        page=current_page,
-                                                        back_button_visible=True,
-                                                        **user_quiz_names)
-        await cb.message.edit_reply_markup(reply_markup=quiz_list_markup)
-        await state.update_data(current_page=current_page)
     await cb.answer()
 
 

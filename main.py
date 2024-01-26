@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher
 
 from config_data.config import load_config, Config
 from keyboards.set_commands import set_main_commands
-from handlers import menu_handlers, create_quiz_and_test_handlers
+from handlers import menu_handlers, create_quiz_and_test_handlers, quiz_and_test_view_handlers
 from database.db_services import initialize_db
 
 
@@ -17,6 +17,7 @@ async def main():
 
     dp.include_router(menu_handlers.rt)
     dp.include_router(create_quiz_and_test_handlers.rt)
+    dp.include_router(quiz_and_test_view_handlers.rt)
 
     await initialize_db()
     await set_main_commands(bot)
