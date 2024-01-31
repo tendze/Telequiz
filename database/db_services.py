@@ -104,12 +104,14 @@ async def get_user_record_names(tg_id: int, type_: Types) -> dict[int, str]:
             return user_q_or_t_id
 
 
-async def get_user_record_questions(record_id: int):
+async def get_user_record_questions(record_id: int) -> list[Question]:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT question_text, variants_id FROM question WHERE id = %s", record_id)
+            cursor.execute("SELECT question_text, variants_id, consider_partial_answers FROM question WHERE id = %s",
+                           record_id)
             rows = cursor.fetchall()
+            questions: list[Question] = []
             for data in rows:
                 variants_id = data['variants_id']
                 cursor.execute("SELECT variant_text FROM variant WHERE id = %s", variants_id)
@@ -117,7 +119,14 @@ async def get_user_record_questions(record_id: int):
                 cursor.execute("SELECT encrypted_text FROM right_variant WHERE id = %s", variants_id)
                 data['right_variants'] = [decrypt_bytes(right_variant['encrypted_text'].encode())
                                           for right_variant in cursor.fetchall()]
-            print(rows)
+                questions.append(Question(question=data['question_text'],
+                                          variants=data['variants'],
+                                          right_variants=data['right_variants'],
+                                          consider_partial_answers=True if int.from_bytes(data['consider_partial_answers'],
+                                                                                          byteorder='little') == 1
+                                          else False))
+            return questions
+
 
 
 async def delete_user_record(record_id: int):

@@ -9,5 +9,7 @@ class CreateQuizOrTestFSM(StatesGroup):
 
 # Состояния главного меню
 class MainMenuFSM(StatesGroup):
-    q_or_t_view = State()  # Состояние просмотра списка созданных квизов/тестов
-    confirmation = State() # Состояние подтверждения чего-либо
+    q_or_t_list_view = State()  # Состояние просмотра списка созданных квизов/тестов
+    q_or_t_view = State()  # Состояние просмотра самих вопросов
+    confirmation = State()  # Состояние подтверждения чего-либо
+

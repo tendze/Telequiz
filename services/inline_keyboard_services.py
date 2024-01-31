@@ -17,7 +17,7 @@ backwards_button = InlineKeyboardButton(text=LEXICON['backward'], callback_data=
 forward_button = InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')
 quiz_record_confirmation_row = [InlineKeyboardButton(text=LEXICON['view'], callback_data='view_quiz'),
                                 InlineKeyboardButton(text=LEXICON['delete'], callback_data='delete_quiz'),
-                                InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel'),]
+                                InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel'), ]
 time_limit_markup = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text=LEXICON['double_backward'], callback_data='double_backward'),
      InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward'),
@@ -29,18 +29,18 @@ time_limit_markup = InlineKeyboardMarkup(inline_keyboard=[
 
 
 # Возвращает объект типа InlineKeyboardMarkup, представляющий из себя кнопки в меню создания квиза/теста
-def create_constructor_inline_markup(question: Question = None,
-                                     edit_mode: bool = False,
-                                     edit_question_button_visible: bool = False,
-                                     delete_question_button_visible: bool = False,
-                                     ready_button_visible: bool = True,
-                                     current_question_index: int = None,
-                                     all_question_count: int = None) -> InlineKeyboardMarkup:
+def create_question_view_inline_markup(question: Question = None,
+                                       edit_mode: bool = False,
+                                       edit_question_button_visible: bool = False,
+                                       delete_question_button_visible: bool = False,
+                                       current_question_index: int = None,
+                                       all_question_count: int = None) -> InlineKeyboardMarkup:
     result = []
     if question is not None:
         for i in range(len(question.variants)):
+            variant_text = question.variants[i]
             result.append([InlineKeyboardButton(
-                text=LEXICON['cross_emoji'] + question.variants[i].lstrip(LEXICON['tick']) if edit_mode else
+                text=LEXICON['tick'] + variant_text if variant_text in question.right_variants else
                 question.variants[i],
                 callback_data=factories.variants.VariantsFactory(var_number=i).pack())]
             )
@@ -57,8 +57,6 @@ def create_constructor_inline_markup(question: Question = None,
     result.append(new_question_button_row)
     if delete_question_button_visible:
         result.append(delete_question_button_row)
-    if ready_button_visible:
-        result.append(ready_button_row)
     result.append(cancel_button_row)
     return InlineKeyboardMarkup(inline_keyboard=result)
 
