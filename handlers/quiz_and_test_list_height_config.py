@@ -1,2 +1,2 @@
-quiz_list_height = 3
-test_list_height = 3
+quiz_list_height = 5
+test_list_height = 5

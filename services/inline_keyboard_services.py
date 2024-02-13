@@ -15,7 +15,8 @@ cancel_button_row = [InlineKeyboardButton(text=LEXICON['cancel'], callback_data=
 back_button_row = [InlineKeyboardButton(text=LEXICON['go_back'], callback_data='go_back')]
 backwards_button = InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward')
 forward_button = InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')
-quiz_record_confirmation_row = [InlineKeyboardButton(text=LEXICON['view'], callback_data='view_quiz'),
+quiz_record_confirmation_row = [InlineKeyboardButton(text=LEXICON['start'], callback_data='start_quiz'),
+                                InlineKeyboardButton(text=LEXICON['view'], callback_data='view_quiz'),
                                 InlineKeyboardButton(text=LEXICON['delete'], callback_data='delete_quiz'),
                                 InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel'), ]
 time_limit_markup = InlineKeyboardMarkup(inline_keyboard=[
