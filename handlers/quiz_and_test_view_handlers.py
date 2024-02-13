@@ -28,14 +28,14 @@ async def process_go_back_press(cb: CallbackQuery, state: FSMContext):
 async def process_backwards_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_page = data['current_page']
-    user_quiz_names = data['user_quiz_names']
+    user_record_names = data['user_record_names']
     if current_page > 1:
         current_page -= 1
         quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
                                                         height=quiz_list_height,
                                                         page=current_page,
                                                         back_button_visible=True,
-                                                        **user_quiz_names)
+                                                        **user_record_names)
         await cb.message.edit_reply_markup(reply_markup=quiz_list_markup)
         await state.update_data(current_page=current_page)
     await cb.answer()
@@ -45,7 +45,7 @@ async def process_backwards_press(cb: CallbackQuery, state: FSMContext):
 async def process_forward_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_page = data['current_list_page']
-    user_quiz_names = data['user_quiz_names']
+    user_record_names = data['user_record_names']
     total_pages = data['total_pages']
     if current_page < total_pages:
         current_page += 1
@@ -53,7 +53,7 @@ async def process_forward_press(cb: CallbackQuery, state: FSMContext):
                                                         height=quiz_list_height,
                                                         page=current_page,
                                                         back_button_visible=True,
-                                                        **user_quiz_names)
+                                                        **user_record_names)
         await cb.message.edit_reply_markup(reply_markup=quiz_list_markup)
         await state.update_data(current_page=current_page)
     await cb.answer()
@@ -63,14 +63,15 @@ async def process_forward_press(cb: CallbackQuery, state: FSMContext):
 async def process_record_press(cb: CallbackQuery, state: FSMContext, callback_data: user_records.UserRecordsFactory):
     data = await state.get_data()
     current_page = data['current_list_page']
-    user_quiz_names = data['user_quiz_names']
-    reset_reply_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
+    user_record_names = data['user_record_names']
+    reset_reply_markup = create_list_of_q_or_t_markup(type_=Types.Quiz if callback_data.type_ == 'Q' else Types.Test,
                                                       height=quiz_list_height,
                                                       page=current_page,
                                                       back_button_visible=True,
-                                                      **user_quiz_names)
+                                                      **user_record_names)
     new_reply_markup = create_confirmation_button(inline_keyboard=reset_reply_markup,
-                                                  callback_data=cb.data)
+                                                  callback_data=cb.data,
+                                                  type_=callback_data.type_)
     record_id_pressed = callback_data.record_id
     await state.update_data(record_id=record_id_pressed)
     await cb.message.edit_reply_markup(reply_markup=new_reply_markup)
@@ -80,36 +81,36 @@ async def process_record_press(cb: CallbackQuery, state: FSMContext, callback_da
 async def process_cancel_record_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_page = data['current_list_page']
-    user_quiz_names = data['user_quiz_names']
+    user_record_names = data['user_record_names']
     quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
                                                     height=quiz_list_height,
                                                     page=current_page,
                                                     back_button_visible=True,
-                                                    **user_quiz_names)
+                                                    **user_record_names)
     await cb.message.edit_reply_markup(reply_markup=quiz_list_markup)
 
 
-@rt.callback_query(F.data == 'delete_quiz', StateFilter(MainMenuFSM.q_or_t_list_view))
+@rt.callback_query(F.data == 'delete_record', StateFilter(MainMenuFSM.q_or_t_list_view))
 async def process_delete_quiz_record_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     record_id_to_delete = data['record_id']
     current_page = data['current_list_page']
-    user_quiz_names: dict[str, str] = data['user_quiz_names']
+    user_record_names: dict[str, str] = data['user_record_names']
     try:
         await delete_user_record(record_id=record_id_to_delete)
-        user_quiz_names.pop(str(record_id_to_delete))
+        user_record_names.pop(str(record_id_to_delete))
         quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
                                                         height=quiz_list_height,
                                                         page=current_page,
                                                         back_button_visible=True,
-                                                        **user_quiz_names)
+                                                        **user_record_names)
         await cb.message.edit_reply_markup(reply_markup=quiz_list_markup)
     except Exception as e:
         await cb.answer('Произошла непредвиденная ошибка, не удалось удалить запись')
         print(e)
 
 
-@rt.callback_query(F.data == 'view_quiz', StateFilter(MainMenuFSM.q_or_t_list_view))
+@rt.callback_query(F.data == 'view_record', StateFilter(MainMenuFSM.q_or_t_list_view))
 async def process_view_quiz_press(cb: CallbackQuery, state: FSMContext):
     record_id = (await state.get_data())['record_id']
     questions: list[Question] = await get_user_record_questions(record_id=record_id)

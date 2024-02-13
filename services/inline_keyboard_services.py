@@ -16,8 +16,12 @@ back_button_row = [InlineKeyboardButton(text=LEXICON['go_back'], callback_data='
 backwards_button = InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward')
 forward_button = InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')
 quiz_record_confirmation_row = [InlineKeyboardButton(text=LEXICON['start'], callback_data='start_quiz'),
-                                InlineKeyboardButton(text=LEXICON['view'], callback_data='view_quiz'),
-                                InlineKeyboardButton(text=LEXICON['delete'], callback_data='delete_quiz'),
+                                InlineKeyboardButton(text=LEXICON['view'], callback_data='view_record'),
+                                InlineKeyboardButton(text=LEXICON['delete'], callback_data='delete_record'),
+                                InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel'), ]
+test_record_confirmation_row = [InlineKeyboardButton(text=LEXICON['send'], callback_data='send_test'),
+                                InlineKeyboardButton(text=LEXICON['view'], callback_data='view_record'),
+                                InlineKeyboardButton(text=LEXICON['delete'], callback_data='delete_record'),
                                 InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel'), ]
 time_limit_markup = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text=LEXICON['double_backward'], callback_data='double_backward'),
@@ -91,11 +95,14 @@ def create_list_of_q_or_t_markup(type_: Types,
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-# Функция для клавиатуры списка квизов и тестов
+# Функция для изменения кнопки записи на кнопку с подтверждением
 def create_confirmation_button(inline_keyboard: InlineKeyboardMarkup,
-                               callback_data: str) -> InlineKeyboardMarkup:
+                               callback_data: str,
+                               type_: str) -> InlineKeyboardMarkup:
     for i in range(len(inline_keyboard.inline_keyboard)):
         for j in range(len(inline_keyboard.inline_keyboard[i])):
             if inline_keyboard.inline_keyboard[i][j].callback_data == callback_data:
-                inline_keyboard.inline_keyboard[i] = quiz_record_confirmation_row
+                inline_keyboard.inline_keyboard[i] = quiz_record_confirmation_row if type_ == 'Q'\
+                    else test_record_confirmation_row
+                break
     return inline_keyboard

@@ -73,7 +73,7 @@ async def insert_questions(user_tg_id: int,
     with conn:
         with conn.cursor() as cursor:
             cursor.execute("INSERT INTO User(tg_id, name, type, time_limit) VALUES(%s, %s, %s, %s)",
-                           (user_tg_id, name, type_.value, 'NULL' if quiz_timer == 0 else quiz_timer))
+                           (user_tg_id, name, type_.value, None if quiz_timer == 0 else quiz_timer))
             conn.commit()
 
             cursor.execute("SELECT LAST_INSERT_ID() FROM User")
@@ -126,7 +126,6 @@ async def get_user_record_questions(record_id: int) -> list[Question]:
                                                                                           byteorder='little') == 1
                                           else False))
             return questions
-
 
 
 async def delete_user_record(record_id: int):

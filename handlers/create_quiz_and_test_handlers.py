@@ -39,7 +39,8 @@ async def web_app(message: Message, state: FSMContext):
                                   f"Данные сохранены в Вашем профиле.",
                              reply_markup=ReplyKeyboardRemove())
         await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
-    except Exception:
+    except Exception as e:
+        print(f'Ошибка {e} в WebApp')
         await message.answer(text="Произошла непредвиденная ошибка :(",
                              reply_markup=ReplyKeyboardRemove())
         await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
@@ -60,7 +61,8 @@ async def process_ready_press(cb: CallbackQuery, state: FSMContext):
         await cb.message.answer(text="Квиз успешно создан!", reply_markup=ReplyKeyboardRemove())
         await cb.message.delete()
         await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
-    except Exception:
+    except Exception as e:
+        print(f'Ошибка {e} в Ready')
         await cb.message.answer(text="Произошла непредвиденная ошибка :(",
                                 reply_markup=ReplyKeyboardRemove())
         await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)

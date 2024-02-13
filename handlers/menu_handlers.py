@@ -82,7 +82,7 @@ async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
         await cb.message.edit_text(text="Вы еще ничего не создали", reply_markup=quiz_list_markup)
     else:
         await cb.message.edit_text(text="Ваши квизы📝", reply_markup=quiz_list_markup)
-        await state.update_data(user_quiz_names=user_quiz_names)
+        await state.update_data(user_record_names=user_quiz_names)
         await state.update_data(current_list_page=1)
         await state.update_data(total_pages=ceil(len(user_quiz_names) / quiz_list_height))
     await state.set_state(MainMenuFSM.q_or_t_list_view)
@@ -101,9 +101,9 @@ async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
     if len(user_quiz_names) == 0:
         await cb.message.edit_text(text="Вы еще ничего не создали", reply_markup=quiz_list_markup)
     else:
-        await cb.message.edit_text(text="Ваши квизы📝", reply_markup=quiz_list_markup)
-        await state.update_data(user_quiz_names=user_quiz_names)
-        await state.update_data(current_page=1)
+        await cb.message.edit_text(text="Ваши тесты📝", reply_markup=quiz_list_markup)
+        await state.update_data(user_record_names=user_quiz_names)
+        await state.update_data(current_list_page=1)
         await state.update_data(total_pages=ceil(len(user_quiz_names) / quiz_list_height))
     await state.set_state(MainMenuFSM.q_or_t_list_view)
     await cb.answer()
