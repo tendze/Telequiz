@@ -1,20 +1,17 @@
 import asyncio
 import logging
 
-from aiogram import Bot, Dispatcher
+from aiogram import Dispatcher
 
-from config_data.config import load_config, Config
 from keyboards.set_commands import set_main_commands
 from handlers import menu_handlers, create_quiz_and_test_handlers, quiz_and_test_view_handlers
 from database.db_services import initialize_db
+from bot import bot
 
 
 async def main():
     logging.basicConfig(level=logging.INFO)
-    config: Config = load_config()
-    bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
     dp = Dispatcher()
-
     dp.include_router(menu_handlers.rt)
     dp.include_router(create_quiz_and_test_handlers.rt)
     dp.include_router(quiz_and_test_view_handlers.rt)

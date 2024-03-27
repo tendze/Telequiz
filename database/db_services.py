@@ -58,8 +58,10 @@ async def initialize_db():
                                                 "encrypted_text VARCHAR(228)" \
                                                 ")"
             create_quiz_codes_table_query = "CREATE TABLE IF NOT EXISTS Quiz_codes(" \
-                                            "id INT UNSIGNED," \
-                                            "FOREIGN KEY" \
+                                            "id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL," \
+                                            "code INT NOT NULL," \
+                                            "user_host_id BIGINT UNSIGNED NOT NULL," \
+                                            "start_time DATETIME" \
                                             ")"
             cursor.execute(create_users_table_query)
             cursor.execute(create_questions_table_query)

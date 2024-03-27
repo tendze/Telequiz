@@ -13,6 +13,7 @@ from services.inline_keyboard_services import (create_list_of_q_or_t_markup,
                                                create_question_view_inline_markup)
 from handlers.quiz_and_test_list_height_config import quiz_list_height, test_list_height
 from classes.question import Question
+import utils
 
 rt = Router()
 
@@ -149,7 +150,6 @@ async def process_next_question_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_page = data['current_page']
     questions: list[Question] = data['questions']
-    print(data)
     if current_page < len(questions):
         current_page += 1
         await state.update_data(current_page=current_page)
@@ -158,8 +158,15 @@ async def process_next_question_press(cb: CallbackQuery, state: FSMContext):
                                    reply_markup=create_question_view_inline_markup(question=current_question,
                                                                                    current_question_index=current_page,
                                                                                    all_question_count=len(questions)))
-    print(await state.get_data())
     await cb.answer()
+
+
+@rt.callback_query(F.data == 'start_quiz', StateFilter(MainMenuFSM.q_or_t_list_view))
+async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    code = utils.generate_code()
+    deep_link = await utils.create_deep_link_by_code(code)
+    await cb.message.answer(text=f'Код для присоединения <code>{code}</code>\nСсылка для присоеднидения: {deep_link}')
 
 
 @rt.callback_query(F.data == 'cancel', StateFilter(MainMenuFSM.q_or_t_view))

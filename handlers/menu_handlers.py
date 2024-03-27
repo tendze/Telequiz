@@ -1,5 +1,5 @@
 from aiogram import F, Router
-from aiogram.filters import Command, CommandStart, StateFilter
+from aiogram.filters import Command, CommandStart, StateFilter, CommandObject
 from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
@@ -10,22 +10,23 @@ from states.states import CreateQuizOrTestFSM, MainMenuFSM
 from services.inline_keyboard_services import create_list_of_q_or_t_markup
 from services.keyboard_services import create_quiz_markup, create_test_markup
 from database.db_services import Types, get_user_record_names
-from handlers.quiz_and_test_list_height_config import quiz_list_height, test_list_height
-
+from handlers.quiz_and_test_list_height_config import quiz_list_height
 
 from math import ceil
 
 rt = Router()
 
 
-@rt.message(CommandStart(), StateFilter(default_state))
-async def process_start_command(message: Message):
+@rt.message(CommandStart())
+async def process_start_command(message: Message, command: CommandObject, state: FSMContext):
+    await state.clear()
     await message.answer(text=LEXICON['greeting'])
     await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
 
 
-@rt.message(Command(commands='menu'), StateFilter(default_state))
-async def process_menu_command(message: Message):
+@rt.message(Command(commands='menu'))
+async def process_menu_command(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
 
 
