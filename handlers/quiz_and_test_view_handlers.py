@@ -13,7 +13,6 @@ from services.inline_keyboard_services import (create_list_of_q_or_t_markup,
                                                create_question_view_inline_markup)
 from handlers.quiz_and_test_list_height_config import quiz_list_height, test_list_height
 from classes.question import Question
-from sys import getsizeof
 
 rt = Router()
 
@@ -24,38 +23,40 @@ async def process_go_back_press(cb: CallbackQuery, state: FSMContext):
     await cb.message.edit_text(text=LEXICON['my_profile'], reply_markup=my_profile_markup)
 
 
+# Перемещение назад в просмотре списка квиза или теста
 @rt.callback_query(F.data == 'backward', StateFilter(MainMenuFSM.q_or_t_list_view))
 async def process_backwards_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    current_page = data['current_page']
+    current_list_page = data['current_list_page']
     user_record_names = data['user_record_names']
-    if current_page > 1:
-        current_page -= 1
+    if current_list_page > 1:
+        current_list_page -= 1
         quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
                                                         height=quiz_list_height,
-                                                        page=current_page,
+                                                        page=current_list_page,
                                                         back_button_visible=True,
                                                         **user_record_names)
         await cb.message.edit_reply_markup(reply_markup=quiz_list_markup)
-        await state.update_data(current_page=current_page)
+        await state.update_data(current_list_page=current_list_page)
     await cb.answer()
 
 
+# Перемещение вперед в просмотре списка квиза или теста
 @rt.callback_query(F.data == 'forward', StateFilter(MainMenuFSM.q_or_t_list_view))
 async def process_forward_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    current_page = data['current_list_page']
+    current_list_page = data['current_list_page']
     user_record_names = data['user_record_names']
     total_pages = data['total_pages']
-    if current_page < total_pages:
-        current_page += 1
+    if current_list_page < total_pages:
+        current_list_page += 1
         quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
                                                         height=quiz_list_height,
-                                                        page=current_page,
+                                                        page=current_list_page,
                                                         back_button_visible=True,
                                                         **user_record_names)
         await cb.message.edit_reply_markup(reply_markup=quiz_list_markup)
-        await state.update_data(current_page=current_page)
+        await state.update_data(current_list_page=current_list_page)
     await cb.answer()
 
 
@@ -125,10 +126,11 @@ async def process_view_quiz_press(cb: CallbackQuery, state: FSMContext):
                                                                                all_question_count=len(questions)))
 
 
+# Перемещение назад в самом квизе или тесте
 @rt.callback_query(F.data == 'backward', StateFilter(MainMenuFSM.q_or_t_view))
-async def process_next_question_press(cb: CallbackQuery, state: FSMContext):
+async def process_previous_question_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    current_page = data['current_list_page']
+    current_page = data['current_page']
     questions: list[Question] = data['questions']
     if current_page > 1:
         current_page -= 1
@@ -141,11 +143,13 @@ async def process_next_question_press(cb: CallbackQuery, state: FSMContext):
     await cb.answer()
 
 
+# Перемещение вперед в самом квизе или тесте
 @rt.callback_query(F.data == 'forward', StateFilter(MainMenuFSM.q_or_t_view))
-async def process_previous_question_press(cb: CallbackQuery, state: FSMContext):
+async def process_next_question_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    current_page = data['current_list_page']
+    current_page = data['current_page']
     questions: list[Question] = data['questions']
+    print(data)
     if current_page < len(questions):
         current_page += 1
         await state.update_data(current_page=current_page)
@@ -154,6 +158,7 @@ async def process_previous_question_press(cb: CallbackQuery, state: FSMContext):
                                    reply_markup=create_question_view_inline_markup(question=current_question,
                                                                                    current_question_index=current_page,
                                                                                    all_question_count=len(questions)))
+    print(await state.get_data())
     await cb.answer()
 
 

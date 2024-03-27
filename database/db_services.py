@@ -57,6 +57,10 @@ async def initialize_db():
                                                 "FOREIGN KEY (id) REFERENCES Question(variants_id)," \
                                                 "encrypted_text VARCHAR(228)" \
                                                 ")"
+            create_quiz_codes_table_query = "CREATE TABLE IF NOT EXISTS Quiz_codes(" \
+                                            "id INT UNSIGNED," \
+                                            "FOREIGN KEY" \
+                                            ")"
             cursor.execute(create_users_table_query)
             cursor.execute(create_questions_table_query)
             cursor.execute(create_variants_table_query)
