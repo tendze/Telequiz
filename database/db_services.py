@@ -69,8 +69,6 @@ async def initialize_db():
                                                    "code INT NOT NULL," \
                                                    "user_host_id BIGINT UNSIGNED NOT NULL," \
                                                    "quiz_record_id INT UNSIGNED," \
-                                                   "message_id INT UNSIGNED," \
-                                                   "chat_id BIGINT UNSIGNED," \
                                                    "start_time VARCHAR(100)" \
                                                    ")"
             create_quiz_participant_session_table_query = "CREATE TABLE IF NOT EXISTS Quiz_participant_session(" \
@@ -79,9 +77,7 @@ async def initialize_db():
                                                           "FOREIGN KEY (quiz_session_id) REFERENCES " \
                                                           "Quiz_host_session(id)," \
                                                           "code INT NOT NULL," \
-                                                          "user_participant_id BIGINT UNSIGNED NOT NULL," \
-                                                          "message_id INT UNSIGNED," \
-                                                          "chat_id BIGINT UNSIGNED" \
+                                                          "user_participant_id BIGINT UNSIGNED NOT NULL" \
                                                           ")"
             cursor.execute(create_users_table_query)
             cursor.execute(create_questions_table_query)
@@ -182,17 +178,15 @@ async def insert_code(
         code: int,
         user_id: int,
         quiz_record_id: int,
-        message_id: int,
-        chat_id: int,
         time: str
 ) -> int:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
-            cursor.execute("INSERT INTO Quiz_host_session(code, user_host_id, quiz_record_id, message_id, chat_id, "
+            cursor.execute("INSERT INTO Quiz_host_session(code, user_host_id, quiz_record_id, "
                            "start_time) "
-                           " VALUES(%s, %s, %s, %s, %s, %s)",
-                           (code, user_id, quiz_record_id, message_id, chat_id, time))
+                           " VALUES(%s, %s, %s, %s)",
+                           (code, user_id, quiz_record_id, time))
             conn.commit()
             last_id = await get_last_inserted_id(table="Quiz_host_session", cursor=cursor)
             return last_id
@@ -204,6 +198,17 @@ async def delete_code(record_id) -> None:
     with conn:
         with conn.cursor() as cursor:
             cursor.execute("DELETE FROM Quiz_host_session WHERE id = %s", record_id)
+            conn.commit()
+            cursor.execute("DELETE FROM Quiz_participant_session WHERE quiz_session_id = %s", record_id)
+            conn.commit()
+
+
+# Удаляет участника из БД по id пользователя (или же id чата с пользователем)
+async def delete_participant(tg_id) -> None:
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM Quiz_participant_session WHERE user_participant_id = %s LIMIT 1", tg_id)
             conn.commit()
 
 

@@ -10,6 +10,7 @@ from database.db_services import *
 from services.inline_keyboard_services import *
 from handlers.quiz_and_test_list_height_config import quiz_list_height
 from classes.question import Question
+from observer.waiting_room_observer import room_observer
 import utils
 import mydatetime
 
@@ -178,12 +179,18 @@ async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
         code=code,
         user_id=cb.from_user.id,
         quiz_record_id=data['record_id'],
-        message_id=msg.message_id,
-        chat_id=msg.chat.id,
         time=mydatetime.get_time_now()
     )
+    await room_observer.add_host_subscriber(
+        code=code,
+        message_id=msg.message_id,
+        chat_id=msg.chat.id,
+        host_state=state,
+        session_db_id=session_id,
+        quiz_name=quiz_name
+    )
     await state.set_state(QuizSessionFSM.host_waiting_for_participants)
-    await state.update_data(session_id=session_id)
+    await state.update_data(quiz_code=code)
     await cb.message.delete()
 
 

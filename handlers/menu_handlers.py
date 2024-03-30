@@ -48,7 +48,7 @@ async def process_back_press(cb: CallbackQuery):
 @rt.callback_query(F.data == 'find_session', StateFilter(default_state))
 async def process_find_session_press(cb: CallbackQuery, state: FSMContext):
     await cb.message.delete()
-    message = await cb.message.answer(text='Введите шестизначный код сессии квиза',
+    message = await cb.message.answer(text='Введите шестизначный код сессии',
                                       reply_markup=InlineKeyboardMarkup(inline_keyboard=[cancel_button_row]))
     await state.set_state(QuizSessionFSM.code_retrieval)
     await state.update_data(last_message_id=message.message_id)

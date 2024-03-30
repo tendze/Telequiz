@@ -14,13 +14,14 @@ ready_button_row = [InlineKeyboardButton(text=LEXICON['ready'], callback_data='r
 cancel_button_row = [InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel')]
 back_button_row = [InlineKeyboardButton(text=LEXICON['go_back'], callback_data='go_back')]
 run_quiz_row = [InlineKeyboardButton(text=LEXICON['run'], callback_data='run_quiz')]
+disconnect_quiz_row = [InlineKeyboardButton(text=LEXICON['disconnect'], callback_data='disconnect_quiz')]
 nickname_confirmation_with_username_rows = [[InlineKeyboardButton(text=LEXICON['use_my_name'],
                                                                   callback_data='use_my_name')],
                                             [InlineKeyboardButton(text=LEXICON['use_my_tag'],
-                                                                  callback_data='use_my_tage')],
+                                                                  callback_data='use_my_tag')],
                                             cancel_button_row]
 nickname_confirmation_without_username_rows = [[InlineKeyboardButton(text=LEXICON['use_my_name'],
-                                                                  callback_data='use_my_name')],
+                                                                     callback_data='use_my_name')],
                                                cancel_button_row]
 quiz_record_confirmation_row = [InlineKeyboardButton(text=LEXICON['start'], callback_data='start_quiz'),
                                 InlineKeyboardButton(text=LEXICON['view'], callback_data='view_record'),
@@ -111,7 +112,7 @@ def create_confirmation_button(inline_keyboard: InlineKeyboardMarkup,
     for i in range(len(inline_keyboard.inline_keyboard)):
         for j in range(len(inline_keyboard.inline_keyboard[i])):
             if inline_keyboard.inline_keyboard[i][j].callback_data == callback_data:
-                inline_keyboard.inline_keyboard[i] = quiz_record_confirmation_row if type_ == 'Q'\
+                inline_keyboard.inline_keyboard[i] = quiz_record_confirmation_row if type_ == 'Q' \
                     else test_record_confirmation_row
                 break
     return inline_keyboard
