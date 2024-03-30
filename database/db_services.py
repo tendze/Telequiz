@@ -192,6 +192,21 @@ async def insert_code(
             return last_id
 
 
+# Добавить нового участника
+async def insert_participant(
+        quiz_session_id: int,
+        code: int,
+        user_participant_id: int
+):
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute("INSERT INTO Quiz_participant_session(quiz_session_id, code, user_participant_id) "
+                           "VALUES(%s, %s, %s)",
+                           (quiz_session_id, code, user_participant_id))
+            conn.commit()
+
+
 # Удалить сессию по коду
 async def delete_code(record_id) -> None:
     conn = db_connection(mysql_db_name)
@@ -212,8 +227,8 @@ async def delete_participant(tg_id) -> None:
             conn.commit()
 
 
-# Возвращает словарь - строку с информацией о сессии
-async def get_quiz_session_info_by_code(code: int | str):
+# Возвращает словарь с информацией о сессии
+async def get_quiz_session_info_by_code(code: int | str) -> dict:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
@@ -221,7 +236,8 @@ async def get_quiz_session_info_by_code(code: int | str):
             return cursor.fetchone()
 
 
-async def get_user_record_info_by_id(id_: int):
+# Возвращает словарь с информацией о записи пользователя
+async def get_user_record_info_by_id(id_: int) -> dict:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:

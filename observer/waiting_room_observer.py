@@ -19,12 +19,12 @@ class RoomObserver:
             chat_id: int,
             message_id: int,
             host_state: FSMContext,
-            session_db_id: int,
+            session_id: int,
             quiz_name: str = None
     ):
         if code not in self.quiz_subscribers:
             self.quiz_subscribers[code] = dict()
-        self.quiz_subscribers[code]['session_id'] = session_db_id
+        self.quiz_subscribers[code]['session_id'] = session_id
         self.quiz_subscribers[code]['host'] = QuizParticipant(
             chat_id=chat_id,
             message_id=message_id,

@@ -24,6 +24,7 @@ async def process_code_retrieval(message: Message, state: FSMContext):
         message = await message.answer(text=LEXICON['incorrect_code'],
                                        reply_markup=InlineKeyboardMarkup(inline_keyboard=[cancel_button_row]))
         await state.update_data(last_message_id=message.message_id)
+        await bot.delete_message(chat_id=message.chat.id, message_id=last_message_id)
         return
     quiz_session_info = await get_quiz_session_info_by_code(quiz_code)
     if quiz_session_info is None:
@@ -52,9 +53,18 @@ async def process_code_retrieval(message: Message, state: FSMContext):
 # Обработка нажатия на кнопки "Использовать мой тэг" и "Использовать моё имя"
 @rt.callback_query(F.data.in_({'use_my_name', 'use_my_tag'}), StateFilter(QuizSessionFSM.nickname_retrieval))
 async def process_use_my_name_press(cb: CallbackQuery, state: FSMContext):
-    print(await state.get_data())
     data = await state.get_data()
     last_message_id = data['last_message_id']
+    quiz_code = data['quiz_code']
+    quiz_session_info = await get_quiz_session_info_by_code(quiz_code)
+    if quiz_session_info is None:
+        await cb.message.delete()
+        message = await cb.message.answer(text=LEXICON['invalid_code'],
+                                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[cancel_button_row]))
+        await state.update_data(last_message_id=message.message_id)
+        await state.set_state(QuizSessionFSM.code_retrieval)
+        return
+
     if cb.data == 'use_my_name':
         first_name = cb.from_user.first_name
         last_name = cb.from_user.last_name
@@ -73,7 +83,7 @@ async def process_use_my_name_press(cb: CallbackQuery, state: FSMContext):
     if cb.data == 'use_my_tag':
         name = '@' + name
     quiz_name = data['quiz_name']
-    quiz_code = data['quiz_code']
+
     msg = await cb.message.answer(text=f'<b>{quiz_name}</b>\n'
                                        f'Ожидайте пока организатор не запустит квиз.\n',
                                   reply_markup=InlineKeyboardMarkup(inline_keyboard=[disconnect_quiz_row]))
@@ -86,12 +96,28 @@ async def process_use_my_name_press(cb: CallbackQuery, state: FSMContext):
     )
     await bot.delete_message(chat_id=cb.message.chat.id, message_id=last_message_id)
     await state.set_state(QuizSessionFSM.participant_waiting_for_participants)
+    await insert_participant(
+        code=quiz_code,
+        quiz_session_id=await room_observer.get_session_id(quiz_code),
+        user_participant_id=cb.from_user.id
+    )
 
 
 # Обработка ввода кастомного имени
 @rt.message(F.content_type == ContentType.TEXT, StateFilter(QuizSessionFSM.nickname_retrieval))
 async def process_name_input(message: Message, state: FSMContext):
-    last_message_id = (await state.get_data())['last_message_id']
+    data = await state.get_data()
+    quiz_code = data['quiz_code']
+    last_message_id = data['last_message_id']
+    quiz_session_info = await get_quiz_session_info_by_code(quiz_code)
+    if quiz_session_info is None:
+        await message.delete()
+        message = await message.answer(text=LEXICON['host_cancelled_quiz'] + "\nВведите новый код.",
+                                       reply_markup=InlineKeyboardMarkup(inline_keyboard=[cancel_button_row]))
+        await state.update_data(last_message_id=message.message_id)
+        await state.set_state(QuizSessionFSM.code_retrieval)
+        return
+
     nick = message.text
     nick_length = len(nick)
     if nick_length > 30 or nick_length == 0:
@@ -101,10 +127,7 @@ async def process_name_input(message: Message, state: FSMContext):
                                    reply_markup=InlineKeyboardMarkup(inline_keyboard=which_inline_keyboard))
         await state.update_data(last_message_id=msg.message_id)
         return
-    data = await state.get_data()
     quiz_name = data['quiz_name']
-    quiz_code = data['quiz_code']
-
     msg = await message.answer(text=f'<b>{quiz_name}</b>\n'
                                     f'Ожидайте пока организатор не запустит квиз.\n',
                                reply_markup=InlineKeyboardMarkup(inline_keyboard=[disconnect_quiz_row]))
@@ -117,6 +140,11 @@ async def process_name_input(message: Message, state: FSMContext):
     )
     await bot.delete_message(chat_id=message.chat.id, message_id=last_message_id)
     await state.set_state(QuizSessionFSM.participant_waiting_for_participants)
+    await insert_participant(
+        code=quiz_code,
+        quiz_session_id=await room_observer.get_session_id(quiz_code),
+        user_participant_id=message.from_user.id
+    )
 
 
 @rt.callback_query(F.data == 'disconnect_quiz', StateFilter(QuizSessionFSM.participant_waiting_for_participants))

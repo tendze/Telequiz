@@ -186,7 +186,7 @@ async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
         message_id=msg.message_id,
         chat_id=msg.chat.id,
         host_state=state,
-        session_db_id=session_id,
+        session_id=session_id,
         quiz_name=quiz_name
     )
     await state.set_state(QuizSessionFSM.host_waiting_for_participants)
