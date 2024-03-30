@@ -78,21 +78,25 @@ async def process_time_limit_press(cb: CallbackQuery, state: FSMContext):
             seconds -= 5
         else:
             await cb.answer(text='Минимальное время - 5 секунд')
+            return
     elif cb.data == 'backward':
         if seconds >= 6:
             seconds -= 1
         else:
             await cb.answer(text='Минимальное время - 5 секунд')
+            return
     elif cb.data == 'forward':
         if seconds <= 60:
             seconds += 1
         else:
             await cb.answer('Максимальное время - 60 секунд')
+            return
     elif cb.data == 'double_forward':
         if seconds <= 55:
             seconds += 5
         else:
             await cb.answer('Максимальное время - 60 секунд')
+            return
     timer_info_inline_keyboard = cb.message.reply_markup.inline_keyboard
     timer_info_inline_keyboard[0][2].text = str(seconds) + ' сек.'
     timer_info_markup = InlineKeyboardMarkup(inline_keyboard=timer_info_inline_keyboard)

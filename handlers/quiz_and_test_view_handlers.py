@@ -1,19 +1,18 @@
 from aiogram import Router, F
 from aiogram.filters import StateFilter
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from keyboards.menu_keyboards import my_profile_markup
 from factories import user_records
-from states.states import MainMenuFSM
-from lexicon.LEXICON_RU import LEXICON
-from database.db_services import Types, delete_user_record, get_user_record_questions
-from services.inline_keyboard_services import (create_list_of_q_or_t_markup,
-                                               create_confirmation_button,
-                                               create_question_view_inline_markup)
-from handlers.quiz_and_test_list_height_config import quiz_list_height, test_list_height
+from states.states import MainMenuFSM, QuizSessionFSM
+from database.db_services import *
+from services.inline_keyboard_services import *
+from handlers.quiz_and_test_list_height_config import quiz_list_height
 from classes.question import Question
 import utils
+import mydatetime
+
 
 rt = Router()
 
@@ -136,7 +135,7 @@ async def process_previous_question_press(cb: CallbackQuery, state: FSMContext):
     if current_page > 1:
         current_page -= 1
         await state.update_data(current_page=current_page)
-        current_question = questions[current_page-1]
+        current_question = questions[current_page - 1]
         await cb.message.edit_text(text=current_question.question,
                                    reply_markup=create_question_view_inline_markup(question=current_question,
                                                                                    current_question_index=current_page,
@@ -153,7 +152,7 @@ async def process_next_question_press(cb: CallbackQuery, state: FSMContext):
     if current_page < len(questions):
         current_page += 1
         await state.update_data(current_page=current_page)
-        current_question = questions[current_page-1]
+        current_question = questions[current_page - 1]
         await cb.message.edit_text(text=current_question.question,
                                    reply_markup=create_question_view_inline_markup(question=current_question,
                                                                                    current_question_index=current_page,
@@ -161,17 +160,38 @@ async def process_next_question_press(cb: CallbackQuery, state: FSMContext):
     await cb.answer()
 
 
+# Запуск квиза
 @rt.callback_query(F.data == 'start_quiz', StateFilter(MainMenuFSM.q_or_t_list_view))
 async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    code = utils.generate_code()
+    quiz_id: int = data['record_id']
+    quiz_name: str = data['user_record_names'][str(quiz_id)]
+    code: int = utils.generate_code()
     deep_link = await utils.create_deep_link_by_code(code)
-    await cb.message.answer(text=f'Код для присоединения <code>{code}</code>\nСсылка для присоеднидения: {deep_link}')
+    msg = await cb.message.answer(
+        text=f'<b>{quiz_name}</b>\nКод для присоединения <code>{code}</code>\n'
+             f'Ссылка для присоедидения: {deep_link}\n'
+             f'Количество участников 0',
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[run_quiz_row, cancel_button_row])
+    )
+    session_id = await insert_code(
+        code=code,
+        user_id=cb.from_user.id,
+        quiz_record_id=data['record_id'],
+        message_id=msg.message_id,
+        chat_id=msg.chat.id,
+        time=mydatetime.get_time_now()
+    )
+    await state.set_state(QuizSessionFSM.host_waiting_for_participants)
+    await state.update_data(session_id=session_id)
+    await cb.message.delete()
 
 
+# Отмена просмотра записи
 @rt.callback_query(F.data == 'cancel', StateFilter(MainMenuFSM.q_or_t_view))
 async def process_cancel_question_view_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await state.set_state(MainMenuFSM.q_or_t_list_view)
+    await state.update_data(list_inline_keyboard={})
     await cb.message.edit_text(text=data['list_text'],
                                reply_markup=InlineKeyboardMarkup(inline_keyboard=data['list_inline_keyboard']))

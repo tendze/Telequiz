@@ -13,8 +13,15 @@ delete_question_button_row = [InlineKeyboardButton(text=LEXICON['delete_question
 ready_button_row = [InlineKeyboardButton(text=LEXICON['ready'], callback_data='ready')]
 cancel_button_row = [InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel')]
 back_button_row = [InlineKeyboardButton(text=LEXICON['go_back'], callback_data='go_back')]
-backwards_button = InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward')
-forward_button = InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')
+run_quiz_row = [InlineKeyboardButton(text=LEXICON['run'], callback_data='run_quiz')]
+nickname_confirmation_with_username_rows = [[InlineKeyboardButton(text=LEXICON['use_my_name'],
+                                                                  callback_data='use_my_name')],
+                                            [InlineKeyboardButton(text=LEXICON['use_my_tag'],
+                                                                  callback_data='use_my_tage')],
+                                            cancel_button_row]
+nickname_confirmation_without_username_rows = [[InlineKeyboardButton(text=LEXICON['use_my_name'],
+                                                                  callback_data='use_my_name')],
+                                               cancel_button_row]
 quiz_record_confirmation_row = [InlineKeyboardButton(text=LEXICON['start'], callback_data='start_quiz'),
                                 InlineKeyboardButton(text=LEXICON['view'], callback_data='view_record'),
                                 InlineKeyboardButton(text=LEXICON['delete'], callback_data='delete_record'),
@@ -31,6 +38,8 @@ time_limit_markup = InlineKeyboardMarkup(inline_keyboard=[
      InlineKeyboardButton(text=LEXICON['double_forward'], callback_data='double_forward')],
     [InlineKeyboardButton(text=LEXICON['ready'], callback_data='ready')]
 ])
+backwards_button = InlineKeyboardButton(text=LEXICON['backward'], callback_data='backward')
+forward_button = InlineKeyboardButton(text=LEXICON['forward'], callback_data='forward')
 
 
 # Возвращает объект типа InlineKeyboardMarkup, представляющий из себя кнопки в меню создания квиза/теста
