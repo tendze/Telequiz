@@ -109,3 +109,6 @@ class BaseQuizSessionObserver:
 
     async def get_session_id(self, code) -> int:
         return self.quiz_subscribers.get(code, {}).get('session_id', -1)
+
+    async def is_session_active(self, code) -> bool:
+        return code in self.quiz_subscribers

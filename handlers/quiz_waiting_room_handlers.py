@@ -33,7 +33,7 @@ async def process_deep_code_retrieval(message: Message, state: FSMContext, comma
         await state.update_data(last_message_id=message.message_id)
         await bot.delete_message(chat_id=message.chat.id, message_id=last_message_id)
         return
-    quiz_session_info = await get_quiz_session_info_by_code(quiz_code)
+    quiz_session_info = await get_quiz_session_info(quiz_code)
     if quiz_session_info is None:
         message = await message.answer(text=LEXICON['code_doesnt_exists'],
                                        reply_markup=InlineKeyboardMarkup(inline_keyboard=[cancel_button_row]))
@@ -68,13 +68,20 @@ async def process_use_my_name_press(cb: CallbackQuery, state: FSMContext):
     last_message_id = data['last_message_id']
     timer_message_id = data['timer_message_id']
     quiz_code = data['quiz_code']
-    quiz_session_info = await get_quiz_session_info_by_code(quiz_code)
+    quiz_session_info = await get_quiz_session_info(quiz_code)
     if quiz_session_info is None:
         await cb.message.delete()
         message = await cb.message.answer(text=LEXICON['invalid_code'],
                                           reply_markup=InlineKeyboardMarkup(inline_keyboard=[cancel_button_row]))
         await state.update_data(last_message_id=message.message_id)
         await state.set_state(QuizSessionFSM.code_retrieval)
+        return
+
+    if await quiz_passing_observer.is_session_active(code=quiz_code):
+        await cb.message.delete()
+        await cb.message.answer(text=LEXICON['room_is_active'])
+        await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+        await state.clear()
         return
 
     if cb.data == 'use_my_name':
@@ -124,7 +131,7 @@ async def process_name_input(message: Message, state: FSMContext):
     quiz_code = data['quiz_code']
     last_message_id = data['last_message_id']
     timer_message_id = data['timer_message_id']
-    quiz_session_info = await get_quiz_session_info_by_code(quiz_code)
+    quiz_session_info = await get_quiz_session_info(quiz_code)
     if quiz_session_info is None:
         await message.delete()
         message = await message.answer(text=LEXICON['host_cancelled_quiz'] + "\nВведите новый код.",
@@ -141,6 +148,12 @@ async def process_name_input(message: Message, state: FSMContext):
         msg = await message.answer(text=LEXICON['incorrect_name_30'],
                                    reply_markup=InlineKeyboardMarkup(inline_keyboard=which_inline_keyboard))
         await state.update_data(last_message_id=msg.message_id)
+        return
+
+    if await quiz_passing_observer.is_session_active(code=quiz_code):
+        await message.delete()
+        await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+        await state.clear()
         return
     quiz_name = data['quiz_name']
     msg = await message.answer(text=f'<b>{quiz_name}</b>\n'
@@ -174,6 +187,7 @@ async def process_disconnect_quiz_press(cb: CallbackQuery, state: FSMContext):
     await delete_participant(cb.from_user.id)
 
 
+# Обработка нажатия на кнопку "Запустить"
 @rt.callback_query(F.data == 'run_quiz', StateFilter(QuizSessionFSM.host_waiting_for_participants))
 async def process_run_quiz_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()

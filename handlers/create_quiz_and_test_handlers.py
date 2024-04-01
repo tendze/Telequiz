@@ -15,6 +15,7 @@ import json
 rt = Router()
 
 
+# Обработка получения данных из WebApp
 @rt.message(F.content_type == ContentType.WEB_APP_DATA, StateFilter(CreateQuizOrTestFSM.create_or_cancel_state))
 async def web_app(message: Message, state: FSMContext):
     type_: RecordTypes = (await state.get_data())['type']
@@ -47,6 +48,7 @@ async def web_app(message: Message, state: FSMContext):
     await state.clear()
 
 
+# Обработка нажатия на кнопку "Готово" при выборе временного ограничения
 @rt.callback_query(F.data == 'ready', StateFilter(CreateQuizOrTestFSM.get_time_limit_state))
 async def process_ready_press(cb: CallbackQuery, state: FSMContext):
     timer_info = cb.message.reply_markup.inline_keyboard[0][2].text.split()
@@ -69,8 +71,9 @@ async def process_ready_press(cb: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
+# Обработка нажатия на кнопку изменения временного ограничения
 @rt.callback_query(StateFilter(CreateQuizOrTestFSM.get_time_limit_state))
-async def process_time_limit_press(cb: CallbackQuery, state: FSMContext):
+async def process_time_limit_press(cb: CallbackQuery):
     timer_info = cb.message.reply_markup.inline_keyboard[0][2].text.split()
     seconds = int(timer_info[0])  # секунды
     if cb.data == 'double_backward':

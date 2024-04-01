@@ -16,6 +16,7 @@ import asyncio
 rt = Router()
 
 
+# Обработка нажатия на кнопку с вариантом ответа участником
 @rt.callback_query(VariantsFactory.filter(), StateFilter(QuizSessionFSM.participant_quiz_passing))
 async def process_quiz_variant_press(cb: CallbackQuery, state: FSMContext, callback_data: VariantsFactory):
     data = await state.get_data()
@@ -49,6 +50,7 @@ async def process_quiz_variant_press(cb: CallbackQuery, state: FSMContext, callb
         pass
 
 
+# Обработка нажатия на кнопку с "Следующий вопрос" хостом
 @rt.callback_query(F.data == 'next_question', StateFilter(QuizSessionFSM.host_quiz_passing))
 async def process_next_question_button_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -64,6 +66,7 @@ async def process_next_question_button_press(cb: CallbackQuery, state: FSMContex
     await timer_task
 
 
+# Обработка нажатия на кнопку с "Завершить квиз" хостом
 @rt.callback_query(F.data == 'finish_quiz', StateFilter(QuizSessionFSM.host_quiz_passing))
 async def process_finish_quiz_host_button_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -82,6 +85,7 @@ async def process_finish_quiz_host_button_press(cb: CallbackQuery, state: FSMCon
     await state.set_state(MainMenuFSM.q_or_t_list_view)
 
 
+# Обработка нажатия на кнопку с "Ответить" участником
 @rt.callback_query(F.data == 'answer_question', StateFilter(QuizSessionFSM.participant_quiz_passing))
 async def process_answer_question_button_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -100,6 +104,7 @@ async def process_answer_question_button_press(cb: CallbackQuery, state: FSMCont
     )
 
 
+# Обработка нажатия на кнопку с "Отключиться" участником
 @rt.callback_query(F.data == 'disconnect_quiz', StateFilter(QuizSessionFSM.participant_quiz_passing))
 async def process_quiz_disconnect_while_session_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -109,11 +114,13 @@ async def process_quiz_disconnect_while_session_press(cb: CallbackQuery, state: 
     await delete_participant(cb.from_user.id)
 
 
+# Обработка нажатия на все остальные кнопки участником
 @rt.callback_query(StateFilter(QuizSessionFSM.participant_quiz_passing))
 async def process_any_action_in_quiz_passing(cb: CallbackQuery):
     await cb.answer()
 
 
+# Обработка нажатия на все остальные кнопки хостом
 @rt.callback_query(StateFilter(QuizSessionFSM.host_quiz_passing))
 async def process_any_host_action_in_quiz_passing(cb : CallbackQuery):
     await cb.answer()

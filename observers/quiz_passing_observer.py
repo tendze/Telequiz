@@ -3,6 +3,7 @@ from classes.quiz_participant import QuizParticipant
 from services.inline_keyboard_services import *
 from classes.question import Question
 from keyboards.menu_keyboards import main_menu_markup
+from database.db_services import *
 from bot import bot
 import utils
 import asyncio
@@ -31,25 +32,9 @@ class QuizPassingObserver(BaseQuizSessionObserver):
             self,
             code
     ):
-        host: QuizParticipant = self.quiz_subscribers[code]['host']
-        await bot.delete_message(
-            chat_id=host.chat_id,
-            message_id=host.timer_message_id
-        )
-        await bot.edit_message_text(
-            text='🎉Квиз завершён🎉\n Вы можете посмотреть статистику участников в вашем профиле',
-            chat_id=host.chat_id,
-            message_id=host.message_id
-        )
-        await host.user_state.clear()
-        await bot.send_message(
-            text=LEXICON['main_menu'],
-            reply_markup=main_menu_markup,
-            chat_id=host.chat_id,
-        )
-
         participants_list: list[QuizParticipant] = await quiz_passing_observer.get_all_participants(code=code)
         questions: list[Question] = quiz_passing_observer.quiz_subscribers[code]['questions']
+        user_results: dict[int, QuizParticipant] = dict()
         for participant in participants_list:
             user_result = round(
                 utils.quiz_utils.get_stats(
@@ -58,6 +43,8 @@ class QuizPassingObserver(BaseQuizSessionObserver):
                 ),
                 3
             )
+            participant.score = user_result
+            user_results[participant.chat_id] = participant
             await bot.delete_message(
                 chat_id=participant.chat_id,
                 message_id=participant.timer_message_id
@@ -74,7 +61,24 @@ class QuizPassingObserver(BaseQuizSessionObserver):
                 reply_markup=main_menu_markup,
                 chat_id=participant.chat_id,
             )
-        print(self.quiz_subscribers[code])
+
+        host: QuizParticipant = self.quiz_subscribers[code]['host']
+        await bot.delete_message(
+            chat_id=host.chat_id,
+            message_id=host.timer_message_id
+        )
+        await bot.edit_message_text(
+            text='🎉Квиз завершён🎉\n Вы можете посмотреть статистику участников в вашем профиле',
+            chat_id=host.chat_id,
+            message_id=host.message_id
+        )
+        await host.user_state.clear()
+        await bot.send_message(
+            text=LEXICON['main_menu'],
+            reply_markup=main_menu_markup,
+            chat_id=host.chat_id,
+        )
+        await delete_code(record_id=self.quiz_subscribers[code]['session_id'])
         del self.quiz_subscribers[code]
 
     async def run_timer(self, code):

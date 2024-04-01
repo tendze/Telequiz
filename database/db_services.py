@@ -79,12 +79,33 @@ async def initialize_db():
                                                           "code INT NOT NULL," \
                                                           "user_participant_id BIGINT UNSIGNED NOT NULL" \
                                                           ")"
+            create_quiz_statistics_table_query = "CREATE TABLE IF NOT EXISTS Quiz_statistics(" \
+                                                 "id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT," \
+                                                 "tg_id BIGINT UNSIGNED NOT NULL," \
+                                                 "record_id INT UNSIGNED," \
+                                                 "nickname VARCHAR(30)," \
+                                                 "record_name VARCHAR(100)," \
+                                                 "score TINYINT UNSIGNED," \
+                                                 "start_time VARCHAR(100)" \
+                                                 ")"
+            create_test_statistics_table_query = "CREATE TABLE IF NOT EXISTS Test_statistics(" \
+                                                 "id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT," \
+                                                 "tg_id BIGINT UNSIGNED NOT NULL," \
+                                                 "record_id INT UNSIGNED," \
+                                                 "nickname VARCHAR(129)," \
+                                                 "record_name VARCHAR(100)," \
+                                                 "score TINYINT UNSIGNED," \
+                                                 "start_time VARCHAR(100)" \
+                                                 ")"
+
             cursor.execute(create_users_table_query)
             cursor.execute(create_questions_table_query)
             cursor.execute(create_variants_table_query)
             cursor.execute(create_right_variants_table_query)
             cursor.execute(create_quiz_host_session_table_query)
             cursor.execute(create_quiz_participant_session_table_query)
+            cursor.execute(create_quiz_statistics_table_query)
+            cursor.execute(create_test_statistics_table_query)
 
 
 # Вставляет данные после в таблицы User, Question, Variant и Right_variant
@@ -243,12 +264,21 @@ async def delete_participant(tg_id) -> None:
 
 
 # Возвращает словарь с информацией о сессии хоста
-async def get_quiz_session_info_by_code(code: int | str) -> dict:
+async def get_quiz_session_info(code: int | str) -> dict:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
             cursor.execute("SELECT * FROM Quiz_host_session WHERE code = %s LIMIT 1", str(code))
             return cursor.fetchone()
+
+
+# Возвращает список словарей с информацией о сессии участника
+async def get_quiz_participant_session_info(code: int | str) -> list[dict]:
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM Quiz_participant_session WHERE code = %s", str(code))
+            return cursor.fetchall()
 
 
 # Возвращает словарь с информацией о записи пользователя
@@ -260,6 +290,7 @@ async def get_user_record_info_by_id(id_: int) -> dict:
             return cursor.fetchone()
 
 
+# Получить последний id, вставленное в таблицу <table>
 async def get_last_inserted_id(table: str, cursor) -> int:
     cursor.execute(f"SELECT LAST_INSERT_ID() FROM {table}")
     return cursor.fetchone()['LAST_INSERT_ID()']

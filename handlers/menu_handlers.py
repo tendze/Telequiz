@@ -3,7 +3,6 @@ from aiogram.filters import Command, CommandStart, StateFilter, CommandObject
 from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardMarkup
-from aiogram.utils.deep_linking import decode_payload
 
 from keyboards.menu_keyboards import main_menu_markup, my_profile_markup
 from lexicon.LEXICON_RU import LEXICON
@@ -19,6 +18,7 @@ from math import ceil
 rt = Router()
 
 
+# Обработка команды /start.
 @rt.message(
     CommandStart(),
     StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
@@ -41,27 +41,32 @@ async def process_start_command(message: Message, state: FSMContext, command: Co
         await state.update_data(last_message_id=msg.message_id)
 
 
+# Обработка команды /menu
 @rt.message(Command(commands='menu'), StateFilter(default_state))
 async def process_menu_command(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
 
 
+# Обработка команды /about
 @rt.message(Command(commands='about'), StateFilter(default_state))
 async def process_info_command(message: Message):
     await message.answer(text=LEXICON['about_bot'])
 
 
+# Обработка нажатия на кнопку "Мой профиль"
 @rt.callback_query(F.data == "my_profile", StateFilter(default_state))
 async def process_profile_button_press(cb: CallbackQuery):
     await cb.message.edit_text(text=LEXICON['my_profile'], reply_markup=my_profile_markup)
 
 
+# Обработка нажатия на кнопку "Назад"
 @rt.callback_query(F.data == "back_main_menu", StateFilter(default_state))
 async def process_back_press(cb: CallbackQuery):
     await cb.message.edit_text(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
 
 
+# Обработка нажатия на кнопку "Ввести код сессии"
 @rt.callback_query(F.data == 'find_session', StateFilter(default_state))
 async def process_find_session_press(cb: CallbackQuery, state: FSMContext):
     await cb.message.delete()
@@ -71,6 +76,7 @@ async def process_find_session_press(cb: CallbackQuery, state: FSMContext):
     await state.update_data(last_message_id=message.message_id)
 
 
+# Обработка нажатия на кнопку "Отмена"
 @rt.callback_query(F.data == 'cancel', StateFilter(QuizSessionFSM.code_retrieval))
 async def process_cancel_code_retrieval_press(cb: CallbackQuery, state: FSMContext):
     await cb.message.delete()
@@ -78,6 +84,7 @@ async def process_cancel_code_retrieval_press(cb: CallbackQuery, state: FSMConte
     await state.clear()
 
 
+# Обработка нажатия на кнопку "Создать квиз"
 @rt.callback_query(F.data == "create_quiz", StateFilter(default_state))
 async def process_create_quiz_press(cb: CallbackQuery, state: FSMContext):
     await cb.message.answer(text='Выберите действие',
@@ -88,6 +95,7 @@ async def process_create_quiz_press(cb: CallbackQuery, state: FSMContext):
     await cb.answer()
 
 
+# Обработка нажатия на кнопку "Создать тест"
 @rt.callback_query(F.data == "create_test", StateFilter(default_state))
 async def process_create_test_press(cb: CallbackQuery, state: FSMContext):
     await cb.message.answer(text='Выберите действие',
@@ -145,6 +153,7 @@ async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
     await cb.answer()
 
 
+# Обработка нажатия на остальные кнопки
 @rt.callback_query(StateFilter(default_state))
 async def process_other_buttons_press(cb: CallbackQuery, state: FSMContext):
     await cb.answer(text='Пока не реализовано :((')

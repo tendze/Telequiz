@@ -209,6 +209,14 @@ async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
     await cb.message.delete()
 
 
+# Отправка теста на прохождение
+@rt.callback_query(F.data == 'send_test', StateFilter(MainMenuFSM.q_or_t_list_view))
+async def process_send_test_button_press(cb: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    record_id = data['record_id']
+    print(data)
+
+
 # Отмена просмотра записи
 @rt.callback_query(F.data == 'cancel', StateFilter(MainMenuFSM.q_or_t_view))
 async def process_cancel_question_view_press(cb: CallbackQuery, state: FSMContext):
