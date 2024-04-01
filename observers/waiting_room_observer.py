@@ -13,7 +13,7 @@ class WaitingRoomObserver(BaseQuizSessionObserver):
         participants_list: list[QuizParticipant] = await room_observer.get_all_participants(code=code)
         participants_str_list = [f"{i + 1}. {participants_list[i].nickname}" for i in range(len(participants_list))]
         participants_str = "\n".join(participants_str_list)
-        deep_link: str = await utils.create_deep_link_by_code(code)
+        deep_link: str = await utils.create_deep_link(param=code)
         await bot.edit_message_text(
             text=f'<b>{self.quiz_subscribers[code]["quiz_name"]}</b>\n'
                  f'Код для присоединения <code>{code}</code>\n'

@@ -179,7 +179,7 @@ async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
     quiz_id: int = data['record_id']
     quiz_name: str = data['user_record_names'][str(quiz_id)]
     code: int = utils.quiz_utils.generate_code()
-    deep_link = await utils.create_deep_link_by_code(code)
+    deep_link = await utils.create_deep_link(param=code)
     timer_message = await cb.message.answer(
         text='<b>Тут будет таймер</b>'
     )
@@ -214,7 +214,18 @@ async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
 async def process_send_test_button_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     record_id = data['record_id']
-    print(data)
+    record_info = await get_user_record_info_by_id(record_id)
+    username_tag = cb.from_user.username
+    username = cb.from_user.first_name + " " + cb.from_user.last_name
+    inviter_nickname = username_tag if username_tag is not None else username
+    inviter_nickname = '@' + inviter_nickname if username_tag is not None else inviter_nickname
+    deep_link_param = str(record_info['record_id']) + ";" + inviter_nickname + ";" + record_info['name']
+    test_deep_link = await utils.create_deep_link(param=deep_link_param, encode=True)
+    await cb.message.answer(
+        text=f'<b>{record_info["name"]}</b>\n'
+             f'Ссылка на тест: {test_deep_link}'
+    )
+    await cb.answer()
 
 
 # Отмена просмотра записи

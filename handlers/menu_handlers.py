@@ -2,47 +2,109 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandStart, StateFilter, CommandObject
 from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 
 from keyboards.menu_keyboards import main_menu_markup, my_profile_markup
-from lexicon.LEXICON_RU import LEXICON
 from states.states import CreateQuizOrTestFSM, MainMenuFSM, QuizSessionFSM
-from services.inline_keyboard_services import create_list_of_q_or_t_markup, cancel_button_row
+from services.inline_keyboard_services import *
 from services.keyboard_services import create_quiz_markup, create_test_markup
-from database.db_services import RecordTypes, get_user_record_names
+from database.db_services import *
 from handlers.quiz_and_test_list_height_config import quiz_list_height
+from bot import bot
 from handlers.quiz_waiting_room_handlers import process_deep_code_retrieval
-
 from math import ceil
+import utils
 
 rt = Router()
 
 
-# Обработка команды /start.
+# Обработка /start с параметром в виде ссылки на запись теста
 @rt.message(
-    CommandStart(),
+    CommandStart(
+        deep_link=True,
+        deep_link_encoded=True
+    ),
     StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
 )
-async def process_start_command(message: Message, state: FSMContext, command: CommandObject):
-    await state.clear()
+async def process_start_command_with_test_link(message: Message, state: FSMContext, command: CommandObject):
+    decoded_arg = command.args
+    data = decoded_arg.split(';')
+    if len(data) != 3:
+        return
+    if not data[0].isdigit():
+        await message.answer(
+            text=LEXICON['incorrect_link']
+        )
+        return
+    if await get_user_record_info_by_id(id_=int(data[0])) is None:
+        await message.answer(
+            text=LEXICON['invalid_link']
+        )
+        return
+    msg = await message.answer(
+        text=f'Пользователь <b>{data[1]}</b> приглашает вас пройти тест <b>{data[2]}</b>',
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=agree_test_passing_rows)
+    )
+    await state.update_data(last_message_id=msg.message_id)
+
+
+# Обработка /start с аргументом в виде кода сессиии
+@rt.message(
+    CommandStart(
+        deep_link=True,
+        deep_link_encoded=False
+    ),
+    StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
+)
+async def process_start_command_with_code(message: Message, state: FSMContext, command: CommandObject):
+    print(f'session code: {command.args}')
+    try:
+        data = await state.get_data()
+        last_message_id = data['last_message_id']
+        await bot.delete_message(
+            chat_id=message.chat.id,
+            message_id=last_message_id
+        )
+    except Exception:
+        pass
     quiz_code = command.args
-    if quiz_code is not None:
-        if not quiz_code.isdigit() or len(quiz_code) != 6:
-            msg = await message.answer(text=LEXICON['incorrect_arg_code'])
-            await state.update_data(last_message_id=msg.message_id)
-        else:
-            await state.set_state(QuizSessionFSM.code_retrieval)
-            msg = await message.answer(text='Обработка кода...')
-            await state.update_data(last_message_id=msg.message_id)
-            await process_deep_code_retrieval(message, state, command)
-    else:
-        await message.answer(text=LEXICON['greeting'])
-        msg = await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    if not quiz_code.isdigit() or len(quiz_code) != 6:
+        msg = await message.answer(text=LEXICON['incorrect_arg_code'])
         await state.update_data(last_message_id=msg.message_id)
+    else:
+        await state.set_state(QuizSessionFSM.code_retrieval)
+        msg = await message.answer(text='Обработка кода...')
+        await state.update_data(last_message_id=msg.message_id)
+        await process_deep_code_retrieval(message, state, command)
+
+
+# Обработка команды /start.
+@rt.message(
+    CommandStart(
+    ),
+    StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
+)
+async def process_start_command(message: Message, state: FSMContext):
+    try:
+        data = await state.get_data()
+        last_message_id = data['last_message_id']
+        await bot.delete_message(
+            chat_id=message.chat.id,
+            message_id=last_message_id
+        )
+    except Exception:
+        pass
+    await state.clear()
+    await message.answer(text=LEXICON['greeting'])
+    msg = await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    await state.update_data(last_message_id=msg.message_id)
 
 
 # Обработка команды /menu
-@rt.message(Command(commands='menu'), StateFilter(default_state))
+@rt.message(
+    Command(commands='menu'),
+    StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
+)
 async def process_menu_command(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)

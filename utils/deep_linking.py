@@ -1,9 +1,10 @@
 from aiogram.utils.deep_linking import create_start_link
+from aiogram.utils.deep_linking import decode_payload
 from bot import bot
 
 
-async def create_deep_link_by_code(
-        code: int,
+async def create_deep_link(
+        param: int | str,
         encode: bool = False
 ) -> str:
-    return await create_start_link(bot, str(code), encode=encode)
+    return await create_start_link(bot, str(param), encode=encode)

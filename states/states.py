@@ -22,3 +22,10 @@ class QuizSessionFSM(StatesGroup):
     participant_waiting_for_participants = State()  # Состояне ожидания других участнико (для других участников)
     participant_quiz_passing = State()  # Состояние прохождения квиза участников
     host_quiz_passing = State()  # Состояние прохождения квиза хостом
+
+
+# Состояния для прохождения теста
+class TestPassingFSM(StatesGroup):
+    test_passing_confirmation = State()  # Состояние ожидания подтверждения  прохождения теста пользователем
+    test_passing = State()  # Состояние прохождения теста
+
