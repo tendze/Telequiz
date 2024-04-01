@@ -79,6 +79,7 @@ async def initialize_db():
                                                           "code INT NOT NULL," \
                                                           "user_participant_id BIGINT UNSIGNED NOT NULL" \
                                                           ")"
+
             cursor.execute(create_users_table_query)
             cursor.execute(create_questions_table_query)
             cursor.execute(create_variants_table_query)
@@ -129,7 +130,9 @@ async def get_user_record_names(tg_id: int, type_: Types) -> dict[int, str]:
 
 
 # Получить все записи пользователя по айди
-async def get_user_record_questions(record_id: int) -> list[Question]:
+async def get_user_record_questions(
+        record_id: int,
+) -> list[Question]:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
@@ -144,14 +147,27 @@ async def get_user_record_questions(record_id: int) -> list[Question]:
                 cursor.execute("SELECT encrypted_text FROM right_variant WHERE id = %s", variants_id)
                 data['right_variants'] = [decrypt_bytes(right_variant['encrypted_text'].encode())
                                           for right_variant in cursor.fetchall()]
-                questions.append(Question(question=data['question_text'],
-                                          variants=data['variants'],
-                                          right_variants=data['right_variants'],
-                                          consider_partial_answers=True if int.from_bytes(
-                                              data['consider_partial_answers'],
-                                              byteorder='little') == 1
-                                          else False))
+                questions.append(
+                    Question(
+                        question=data['question_text'],
+                        variants=data['variants'],
+                        right_variants=data['right_variants'],
+                        consider_partial_answers=True if int.from_bytes(
+                            data['consider_partial_answers'],
+                            byteorder='little') == 1
+                        else False
+                    )
+                )
             return questions
+
+
+# Получает ограничение по времени записи
+async def get_time_limit(record_id) -> int | None:
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM User WHERE record_id = %s", record_id)
+            return cursor.fetchone()['time_limit']
 
 
 # Удалить запись
@@ -212,9 +228,9 @@ async def delete_code(record_id) -> None:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM Quiz_host_session WHERE id = %s", record_id)
-            conn.commit()
             cursor.execute("DELETE FROM Quiz_participant_session WHERE quiz_session_id = %s", record_id)
+            conn.commit()
+            cursor.execute("DELETE FROM Quiz_host_session WHERE id = %s", record_id)
             conn.commit()
 
 
@@ -227,7 +243,7 @@ async def delete_participant(tg_id) -> None:
             conn.commit()
 
 
-# Возвращает словарь с информацией о сессии
+# Возвращает словарь с информацией о сессии хоста
 async def get_quiz_session_info_by_code(code: int | str) -> dict:
     conn = db_connection(mysql_db_name)
     with conn:

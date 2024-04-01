@@ -20,3 +20,5 @@ class QuizSessionFSM(StatesGroup):
     nickname_retrieval = State()  # Состояние ожидания ввода никнейма
     host_waiting_for_participants = State()  # Состояние ожидания участников (для хоста)
     participant_waiting_for_participants = State()  # Состояне ожидания других участнико (для других участников)
+    participant_quiz_passing = State()  # Состояние прохождения квиза участников
+    host_quiz_passing = State()  # Состояние прохождения квиза хостом

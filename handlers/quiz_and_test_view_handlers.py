@@ -10,10 +10,9 @@ from database.db_services import *
 from services.inline_keyboard_services import *
 from handlers.quiz_and_test_list_height_config import quiz_list_height
 from classes.question import Question
-from observer.waiting_room_observer import room_observer
+from observers.waiting_room_observer import room_observer
 import utils
 import mydatetime
-
 
 rt = Router()
 
@@ -121,10 +120,14 @@ async def process_view_quiz_press(cb: CallbackQuery, state: FSMContext):
     await state.update_data(list_text=cb.message.text)
     await state.update_data(list_inline_keyboard=cb.message.reply_markup.inline_keyboard)
     await state.set_state(MainMenuFSM.q_or_t_view)
-    await cb.message.edit_text(text=questions[0].question,
-                               reply_markup=create_question_view_inline_markup(question=questions[0],
-                                                                               current_question_index=1,
-                                                                               all_question_count=len(questions)))
+    await cb.message.edit_text(
+        text=questions[0].question,
+        reply_markup=create_question_view_inline_markup(
+            question=questions[0],
+            current_question_index=1,
+            all_question_count=len(questions)
+        )
+    )
 
 
 # Перемещение назад в самом квизе или тесте
@@ -137,10 +140,14 @@ async def process_previous_question_press(cb: CallbackQuery, state: FSMContext):
         current_page -= 1
         await state.update_data(current_page=current_page)
         current_question = questions[current_page - 1]
-        await cb.message.edit_text(text=current_question.question,
-                                   reply_markup=create_question_view_inline_markup(question=current_question,
-                                                                                   current_question_index=current_page,
-                                                                                   all_question_count=len(questions)))
+        await cb.message.edit_text(
+            text=current_question.question,
+            reply_markup=create_question_view_inline_markup(
+                question=current_question,
+                current_question_index=current_page,
+                all_question_count=len(questions)
+            )
+        )
     await cb.answer()
 
 
@@ -154,10 +161,14 @@ async def process_next_question_press(cb: CallbackQuery, state: FSMContext):
         current_page += 1
         await state.update_data(current_page=current_page)
         current_question = questions[current_page - 1]
-        await cb.message.edit_text(text=current_question.question,
-                                   reply_markup=create_question_view_inline_markup(question=current_question,
-                                                                                   current_question_index=current_page,
-                                                                                   all_question_count=len(questions)))
+        await cb.message.edit_text(
+            text=current_question.question,
+            reply_markup=create_question_view_inline_markup(
+                question=current_question,
+                current_question_index=current_page,
+                all_question_count=len(questions)
+            )
+        )
     await cb.answer()
 
 
@@ -167,8 +178,11 @@ async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     quiz_id: int = data['record_id']
     quiz_name: str = data['user_record_names'][str(quiz_id)]
-    code: int = utils.generate_code()
+    code: int = utils.quiz_utils.generate_code()
     deep_link = await utils.create_deep_link_by_code(code)
+    timer_message = await cb.message.answer(
+        text='<b>Тут будет таймер</b>'
+    )
     msg = await cb.message.answer(
         text=f'<b>{quiz_name}</b>\nКод для присоединения <code>{code}</code>\n'
              f'Ссылка для присоедидения: {deep_link}\n'
@@ -187,7 +201,8 @@ async def process_start_quiz_press(cb: CallbackQuery, state: FSMContext):
         chat_id=msg.chat.id,
         host_state=state,
         session_id=session_id,
-        quiz_name=quiz_name
+        quiz_name=quiz_name,
+        timer_message_id=timer_message.message_id
     )
     await state.set_state(QuizSessionFSM.host_waiting_for_participants)
     await state.update_data(quiz_code=code)
