@@ -60,7 +60,8 @@ LEXICON: dict[str, str] = {
     'tick': '☑',
     'empty_radio': '⚪',
     'radio': '🔘',
-    'blocked_answer': '❌Ответить'
+    'blocked_answer': '❌Ответить',
+    'incorrect_arg_code': '❌Некорректный код подключения'
 }
 
 LEXICON_COMMANDS: dict[str, str] = {

@@ -70,7 +70,7 @@ async def process_finish_quiz_host_button_press(cb: CallbackQuery, state: FSMCon
     quiz_code = data['quiz_code']
     current_list_page = data['current_list_page']
     user_record_names = data['user_record_names']
-    quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
+    quiz_list_markup = create_list_of_q_or_t_markup(type_=RecordTypes.Quiz,
                                                     height=quiz_list_height,
                                                     page=current_list_page,
                                                     back_button_visible=True,

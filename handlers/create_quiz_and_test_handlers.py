@@ -3,7 +3,7 @@ from aiogram.filters import StateFilter
 from aiogram.types import ContentType, Message, ReplyKeyboardRemove, CallbackQuery, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 
-from database.db_services import insert_questions, Types
+from database.db_services import insert_questions, RecordTypes
 from classes.question import Question
 from lexicon.LEXICON_RU import LEXICON
 from keyboards.menu_keyboards import main_menu_markup
@@ -17,13 +17,13 @@ rt = Router()
 
 @rt.message(F.content_type == ContentType.WEB_APP_DATA, StateFilter(CreateQuizOrTestFSM.create_or_cancel_state))
 async def web_app(message: Message, state: FSMContext):
-    type_: Types = (await state.get_data())['type']
+    type_: RecordTypes = (await state.get_data())['type']
     result = json.loads(message.web_app_data.data)
     questions = [Question(question=q['question'],
                           variants=q['variants'],
                           right_variants=q['right_variants'],
                           consider_partial_answers=q['consider_partial_answers'] == 1) for q in result['questions']]
-    if type_ == Types.Quiz:
+    if type_ == RecordTypes.Quiz:
         await message.answer(text=LEXICON['choose_time_limit'], reply_markup=time_limit_markup)
         await state.update_data(name=result['name'])
         await state.update_data(questions=questions)

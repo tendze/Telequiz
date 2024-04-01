@@ -6,7 +6,7 @@ from encrypting.question_encripting import encrypt_text, decrypt_bytes
 
 
 # Класс, представляющий квиз/тест
-class Types(Enum):
+class RecordTypes(Enum):
     Quiz = 'Q'
     Test = 'T'
 
@@ -79,7 +79,6 @@ async def initialize_db():
                                                           "code INT NOT NULL," \
                                                           "user_participant_id BIGINT UNSIGNED NOT NULL" \
                                                           ")"
-
             cursor.execute(create_users_table_query)
             cursor.execute(create_questions_table_query)
             cursor.execute(create_variants_table_query)
@@ -92,7 +91,7 @@ async def initialize_db():
 async def insert_questions(user_tg_id: int,
                            name: str,
                            questions: list[Question],
-                           type_: Types,
+                           type_: RecordTypes,
                            quiz_timer: int):
     conn = db_connection(mysql_db_name)
     with conn:
@@ -120,7 +119,7 @@ async def insert_questions(user_tg_id: int,
 
 
 # Возващает словарь вида record_id: name, где record_id - айди записи, а name - название квиза/теста
-async def get_user_record_names(tg_id: int, type_: Types) -> dict[int, str]:
+async def get_user_record_names(tg_id: int, type_: RecordTypes) -> dict[int, str]:
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:

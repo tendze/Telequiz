@@ -4,7 +4,7 @@ import factories
 from math import ceil
 from classes.question import Question
 from lexicon.LEXICON_RU import LEXICON
-from database.db_services import Types
+from database.db_services import RecordTypes
 
 edit_button_row = [InlineKeyboardButton(text=LEXICON['edit'], callback_data='edit')]
 cancel_edit_button_row = [InlineKeyboardButton(text=LEXICON['cancel_edit'], callback_data='cancel_edit')]
@@ -84,7 +84,7 @@ def create_question_view_inline_markup(
 
 # Возвращает объект типа InlineKeyboardMarkup, представляющий из себя список созданных квизов/тестов
 def create_list_of_q_or_t_markup(
-        type_: Types,
+        type_: RecordTypes,
         height: int = 5,
         page: int = 1,
         back_button_visible: bool = True,

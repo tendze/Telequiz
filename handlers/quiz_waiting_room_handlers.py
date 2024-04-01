@@ -17,11 +17,16 @@ import asyncio
 rt = Router()
 
 
-# Обработка ввода кода
+# Обработка ввода кода по диплинку и по вводу вручную
 @rt.message(StateFilter(QuizSessionFSM.code_retrieval))
-async def process_code_retrieval(message: Message, state: FSMContext):
+async def process_deep_code_retrieval(message: Message, state: FSMContext, command: CommandObject = None):
     last_message_id = (await state.get_data())['last_message_id']
-    quiz_code = message.text
+    quiz_code: str
+    if command is not None:
+        quiz_code = command.args
+    else:
+        quiz_code = message.text
+
     if not quiz_code.isdigit() or len(quiz_code) != 6:
         message = await message.answer(text=LEXICON['incorrect_code'],
                                        reply_markup=InlineKeyboardMarkup(inline_keyboard=[cancel_button_row]))
@@ -222,7 +227,7 @@ async def process_cancel_question_view_press(cb: CallbackQuery, state: FSMContex
     quiz_code = data['quiz_code']
     current_list_page = data['current_list_page']
     user_record_names = data['user_record_names']
-    quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
+    quiz_list_markup = create_list_of_q_or_t_markup(type_=RecordTypes.Quiz,
                                                     height=quiz_list_height,
                                                     page=current_list_page,
                                                     back_button_visible=True,

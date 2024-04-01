@@ -82,6 +82,8 @@ class BaseQuizSessionObserver:
         raise NotImplementedError("BaseRoomObserver: method notify_subscribers is not overridden")
 
     async def remove_participant(self, code, chat_id):
+        if code not in self.quiz_subscribers:
+            return
         participant_to_remove: QuizParticipant = None
         for participant in self.quiz_subscribers[code]['participants']:
             participant_to_remove = participant if participant.chat_id == chat_id else None

@@ -31,7 +31,7 @@ async def process_backwards_press(cb: CallbackQuery, state: FSMContext):
     user_record_names = data['user_record_names']
     if current_list_page > 1:
         current_list_page -= 1
-        quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
+        quiz_list_markup = create_list_of_q_or_t_markup(type_=RecordTypes.Quiz,
                                                         height=quiz_list_height,
                                                         page=current_list_page,
                                                         back_button_visible=True,
@@ -50,7 +50,7 @@ async def process_forward_press(cb: CallbackQuery, state: FSMContext):
     total_pages = data['total_pages']
     if current_list_page < total_pages:
         current_list_page += 1
-        quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
+        quiz_list_markup = create_list_of_q_or_t_markup(type_=RecordTypes.Quiz,
                                                         height=quiz_list_height,
                                                         page=current_list_page,
                                                         back_button_visible=True,
@@ -65,7 +65,7 @@ async def process_record_press(cb: CallbackQuery, state: FSMContext, callback_da
     data = await state.get_data()
     current_page = data['current_list_page']
     user_record_names = data['user_record_names']
-    reset_reply_markup = create_list_of_q_or_t_markup(type_=Types.Quiz if callback_data.type_ == 'Q' else Types.Test,
+    reset_reply_markup = create_list_of_q_or_t_markup(type_=RecordTypes.Quiz if callback_data.type_ == 'Q' else RecordTypes.Test,
                                                       height=quiz_list_height,
                                                       page=current_page,
                                                       back_button_visible=True,
@@ -83,7 +83,7 @@ async def process_cancel_record_press(cb: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_page = data['current_list_page']
     user_record_names = data['user_record_names']
-    quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
+    quiz_list_markup = create_list_of_q_or_t_markup(type_=RecordTypes.Quiz,
                                                     height=quiz_list_height,
                                                     page=current_page,
                                                     back_button_visible=True,
@@ -100,7 +100,7 @@ async def process_delete_quiz_record_press(cb: CallbackQuery, state: FSMContext)
     try:
         await delete_user_record(record_id=record_id_to_delete)
         user_record_names.pop(str(record_id_to_delete))
-        quiz_list_markup = create_list_of_q_or_t_markup(type_=Types.Quiz,
+        quiz_list_markup = create_list_of_q_or_t_markup(type_=RecordTypes.Quiz,
                                                         height=quiz_list_height,
                                                         page=current_page,
                                                         back_button_visible=True,
