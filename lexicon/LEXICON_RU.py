@@ -66,7 +66,9 @@ LEXICON: dict[str, str] = {
     'incorrect_link': 'Некорректная ссылка',
     'invalid_link': 'Ссылка неактуальна',
     'pass': '✅Пройти',
-    'refuse': '❌Отказаться'
+    'refuse': '❌Отказаться',
+    'yes': '✅Да',
+    'no': '❌Нет'
 }
 
 LEXICON_COMMANDS: dict[str, str] = {

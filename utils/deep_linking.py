@@ -1,5 +1,4 @@
 from aiogram.utils.deep_linking import create_start_link
-from aiogram.utils.deep_linking import decode_payload
 from bot import bot
 
 

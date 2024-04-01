@@ -5,6 +5,8 @@ from aiogram.fsm.state import StatesGroup, State
 class CreateQuizOrTestFSM(StatesGroup):
     create_or_cancel_state = State()
     get_time_limit_state = State()
+    get_deadline_state = State()
+    deadline_confirmation_state = State()
 
 
 # Состояния главного меню

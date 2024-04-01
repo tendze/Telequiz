@@ -79,7 +79,6 @@ class QuizPassingObserver(BaseQuizSessionObserver):
             chat_id=host.chat_id,
         )
         await delete_code(record_id=self.quiz_subscribers[code]['session_id'])
-        print(f'quiz_passing_observer: {self.quiz_subscribers[code]}')
         del self.quiz_subscribers[code]
 
     async def run_timer(self, code):

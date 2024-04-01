@@ -45,7 +45,8 @@ async def initialize_db():
                                        "tg_id BIGINT UNSIGNED NOT NULL," \
                                        "name VARCHAR(100)," \
                                        "type ENUM('Q', 'T')," \
-                                       "time_limit INT UNSIGNED" \
+                                       "time_limit INT UNSIGNED," \
+                                       "deadline VARCHAR(100)" \
                                        ")"
             create_questions_table_query = "CREATE TABLE IF NOT EXISTS Question(" \
                                            "id INT UNSIGNED," \
@@ -113,12 +114,13 @@ async def insert_questions(user_tg_id: int,
                            name: str,
                            questions: list[Question],
                            type_: RecordTypes,
-                           quiz_timer: int):
+                           quiz_timer: int = 0,
+                           deadline: str = None):
     conn = db_connection(mysql_db_name)
     with conn:
         with conn.cursor() as cursor:
-            cursor.execute("INSERT INTO User(tg_id, name, type, time_limit) VALUES(%s, %s, %s, %s)",
-                           (user_tg_id, name, type_.value, None if quiz_timer == 0 else quiz_timer))
+            cursor.execute("INSERT INTO User(tg_id, name, type, time_limit, deadline) VALUES(%s, %s, %s, %s, %s)",
+                           (user_tg_id, name, type_.value, None if quiz_timer == 0 else quiz_timer, deadline))
             conn.commit()
 
             last_user_record_id = await get_last_inserted_id(table="User", cursor=cursor)

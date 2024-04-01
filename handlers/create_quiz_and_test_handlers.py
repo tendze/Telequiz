@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.filters import StateFilter
+from aiogram.filters import StateFilter, Command
 from aiogram.types import ContentType, Message, ReplyKeyboardRemove, CallbackQuery, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 
@@ -9,43 +9,42 @@ from lexicon.LEXICON_RU import LEXICON
 from keyboards.menu_keyboards import main_menu_markup
 from services.inline_keyboard_services import time_limit_markup
 from states.states import CreateQuizOrTestFSM
-
+from aiogram_dialog import DialogManager, StartMode
+from keyboards.calendar_keyboard import calendar_dialog
+import mydatetime
 import json
 
 rt = Router()
+rt.include_router(calendar_dialog)
 
 
 # Обработка получения данных из WebApp
 @rt.message(F.content_type == ContentType.WEB_APP_DATA, StateFilter(CreateQuizOrTestFSM.create_or_cancel_state))
-async def web_app(message: Message, state: FSMContext):
+async def web_app(message: Message, state: FSMContext, dialog_manager: DialogManager):
     type_: RecordTypes = (await state.get_data())['type']
     result = json.loads(message.web_app_data.data)
     questions = [Question(question=q['question'],
                           variants=q['variants'],
                           right_variants=q['right_variants'],
                           consider_partial_answers=q['consider_partial_answers'] == 1) for q in result['questions']]
+    await state.update_data(name=result['name'])
+    await state.update_data(questions=questions)
     if type_ == RecordTypes.Quiz:
         await message.answer(text=LEXICON['choose_time_limit'], reply_markup=time_limit_markup)
-        await state.update_data(name=result['name'])
-        await state.update_data(questions=questions)
         await state.set_state(CreateQuizOrTestFSM.get_time_limit_state)
         return
     try:
-        await insert_questions(user_tg_id=message.from_user.id,
-                               name=result['name'],
-                               questions=questions,
-                               type_=type_,
-                               quiz_timer=0)
         await message.answer(text=f"Тест успешно создан!\n"
-                                  f"Данные сохранены в Вашем профиле.",
+                                  f"Пожалуйста, выберите дедлайн для этого теста",
                              reply_markup=ReplyKeyboardRemove())
-        await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+        await state.set_state(CreateQuizOrTestFSM.get_deadline_state)
+        await state.update_data(state_to_switch=CreateQuizOrTestFSM.deadline_confirmation_state)
+        await dialog_manager.start(CreateQuizOrTestFSM.get_deadline_state, mode=StartMode.RESET_STACK)
     except Exception as e:
         print(f'Ошибка {e} в WebApp')
         await message.answer(text="Произошла непредвиденная ошибка :(",
                              reply_markup=ReplyKeyboardRemove())
         await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
-    await state.clear()
 
 
 # Обработка нажатия на кнопку "Готово" при выборе временного ограничения
@@ -104,3 +103,29 @@ async def process_time_limit_press(cb: CallbackQuery):
     timer_info_inline_keyboard[0][2].text = str(seconds) + ' сек.'
     timer_info_markup = InlineKeyboardMarkup(inline_keyboard=timer_info_inline_keyboard)
     await cb.message.edit_reply_markup(reply_markup=timer_info_markup)
+
+
+@rt.callback_query(F.data == 'no', StateFilter(CreateQuizOrTestFSM.deadline_confirmation_state))
+async def process_no_button_press(cb: CallbackQuery, state: FSMContext, dialog_manager: DialogManager):
+    await state.set_state(CreateQuizOrTestFSM.get_deadline_state)
+    await dialog_manager.start(CreateQuizOrTestFSM.get_deadline_state, mode=StartMode.NORMAL)
+
+
+@rt.callback_query(F.data == 'yes', StateFilter(CreateQuizOrTestFSM.deadline_confirmation_state))
+async def process_yes_button_press(cb: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    name = data['name']
+    questions = data['questions']
+    type_: RecordTypes = (await state.get_data())['type']
+    selected_date = data['selected_data']
+    parsed_deadline = f'23:59 {selected_date.day}-{selected_date.month}-{selected_date.year}'
+    await insert_questions(
+        user_tg_id=cb.from_user.id,
+        name=name,
+        questions=questions,
+        type_=type_,
+        quiz_timer=0,
+        deadline=parsed_deadline
+    )
+    await state.clear()
+    await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)

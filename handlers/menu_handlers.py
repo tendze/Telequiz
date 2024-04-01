@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 
 from keyboards.menu_keyboards import main_menu_markup, my_profile_markup
-from states.states import CreateQuizOrTestFSM, MainMenuFSM, QuizSessionFSM
+from states.states import *
 from services.inline_keyboard_services import *
 from services.keyboard_services import create_quiz_markup, create_test_markup
 from database.db_services import *
@@ -13,7 +13,6 @@ from handlers.quiz_and_test_list_height_config import quiz_list_height
 from bot import bot
 from handlers.quiz_waiting_room_handlers import process_deep_code_retrieval
 from math import ceil
-import utils
 
 rt = Router()
 
@@ -46,6 +45,7 @@ async def process_start_command_with_test_link(message: Message, state: FSMConte
         reply_markup=InlineKeyboardMarkup(inline_keyboard=agree_test_passing_rows)
     )
     await state.update_data(last_message_id=msg.message_id)
+    await state.set_state(TestPassingFSM.test_passing_confirmation)
 
 
 # Обработка /start с аргументом в виде кода сессиии
@@ -80,8 +80,7 @@ async def process_start_command_with_code(message: Message, state: FSMContext, c
 
 # Обработка команды /start.
 @rt.message(
-    CommandStart(
-    ),
+    CommandStart(),
     StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
 )
 async def process_start_command(message: Message, state: FSMContext):
@@ -106,8 +105,17 @@ async def process_start_command(message: Message, state: FSMContext):
     StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
 )
 async def process_menu_command(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    try:
+        data = await state.get_data()
+        last_message_id = data['last_message_id']
+        await bot.delete_message(
+            chat_id=message.chat.id,
+            message_id=last_message_id
+        )
+    except Exception:
+        pass
+    msg = await message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)
+    await state.update_data(last_message_id=msg.message_id)
 
 
 # Обработка команды /about
@@ -214,8 +222,3 @@ async def process_my_quizzes_press(cb: CallbackQuery, state: FSMContext):
     await state.set_state(MainMenuFSM.q_or_t_list_view)
     await cb.answer()
 
-
-# Обработка нажатия на остальные кнопки
-@rt.callback_query(StateFilter(default_state))
-async def process_other_buttons_press(cb: CallbackQuery, state: FSMContext):
-    await cb.answer(text='Пока не реализовано :((')

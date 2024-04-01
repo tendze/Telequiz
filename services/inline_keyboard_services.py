@@ -35,6 +35,8 @@ test_record_confirmation_row = [InlineKeyboardButton(text=LEXICON['send'], callb
                                 InlineKeyboardButton(text=LEXICON['view'], callback_data='view_record'),
                                 InlineKeyboardButton(text=LEXICON['delete'], callback_data='delete_record'),
                                 InlineKeyboardButton(text=LEXICON['cancel'], callback_data='cancel'), ]
+deadline_confirmation_row = [InlineKeyboardButton(text=LEXICON['yes'], callback_data='yes'),
+                             InlineKeyboardButton(text=LEXICON['no'], callback_data='no')]
 agree_test_passing_rows = [[InlineKeyboardButton(text=LEXICON['pass'], callback_data='pass_test')],
                            [InlineKeyboardButton(text=LEXICON['refuse'], callback_data='refuse')]]
 time_limit_markup = InlineKeyboardMarkup(inline_keyboard=[
