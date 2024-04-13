@@ -2,7 +2,7 @@ from datetime import date, datetime, time
 
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 
-from services.inline_keyboard_services import deadline_confirmation_row
+from services.inline_keyboard_services import yes_no_confirmation_row
 
 
 from aiogram_dialog.widgets.kbd import Calendar, Button
@@ -29,16 +29,15 @@ async def on_date_selected(cb: CallbackQuery, widget,
     await manager.reset_stack()
     await cb.message.delete()
     user_context = dp.fsm.get_context(bot=bot, user_id=cb.from_user.id, chat_id=cb.from_user.id)
-    state_to_switch = (await user_context.get_data()).get('state_to_switch', None)
-    if state_to_switch is not None:
-        await user_context.set_state(state_to_switch)
     msg = await cb.message.answer(
         text=f'Вы выбрали дедлайн: <b>{selected_date.day}/{selected_date.month}/{selected_date.year} 23:59</b>, верно?',
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[deadline_confirmation_row])
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[yes_no_confirmation_row])
     )
     await user_context.update_data(last_message_id=msg.message_id)
     await user_context.update_data(selected_data=selected_date)
-    await user_context.set_state(CreateQuizOrTestFSM.deadline_confirmation_state)
+    state_to_switch = (await user_context.get_data()).get('state_to_switch', None)
+    if state_to_switch is not None:
+        await user_context.set_state(state_to_switch)
 
 
 calendar = Calendar(id='calendar', on_click=on_date_selected)

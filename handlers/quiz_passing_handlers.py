@@ -32,7 +32,7 @@ async def process_quiz_variant_press(cb: CallbackQuery, state: FSMContext, callb
     if not can_change:
         await cb.answer(text='Вы уже не можете поменять ответ!')
         return
-    selected_answers_indexes = get_quiz_question_ticked_answers_indexes(
+    selected_answers_indexes = get_question_ticked_answers_indexes(
         keyboard=new_kb
     )
     current_question_index = await quiz_passing_observer.get_current_question_index(code=quiz_code)
@@ -73,11 +73,13 @@ async def process_finish_quiz_host_button_press(cb: CallbackQuery, state: FSMCon
     quiz_code = data['quiz_code']
     current_list_page = data['current_list_page']
     user_record_names = data['user_record_names']
-    quiz_list_markup = create_list_of_q_or_t_markup(type_=RecordTypes.Quiz,
-                                                    height=quiz_list_height,
-                                                    page=current_list_page,
-                                                    back_button_visible=True,
-                                                    **user_record_names)
+    quiz_list_markup = create_list_of_q_or_t_markup(
+        type_=RecordTypes.Quiz,
+        height=quiz_list_height,
+        page=current_list_page,
+        back_button_visible=True,
+        **user_record_names
+    )
     await delete_code(await quiz_passing_observer.get_session_id(code=quiz_code))
     await quiz_passing_observer.delete_room(quiz_code)
     await cb.message.answer(text=LEXICON['your_quizzes'],
@@ -122,5 +124,5 @@ async def process_any_action_in_quiz_passing(cb: CallbackQuery):
 
 # Обработка нажатия на все остальные кнопки хостом
 @rt.callback_query(StateFilter(QuizSessionFSM.host_quiz_passing))
-async def process_any_host_action_in_quiz_passing(cb : CallbackQuery):
+async def process_any_host_action_in_quiz_passing(cb: CallbackQuery):
     await cb.answer()

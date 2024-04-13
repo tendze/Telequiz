@@ -1,2 +1,3 @@
 import factories.user_records
 import factories.variants
+import factories.statistics_record

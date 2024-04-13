@@ -13,6 +13,11 @@ class CreateQuizOrTestFSM(StatesGroup):
 class MainMenuFSM(StatesGroup):
     q_or_t_list_view = State()  # Состояние просмотра списка созданных квизов/тестов
     q_or_t_view = State()  # Состояние просмотра самих вопросов
+    statistics_select = State()  # Состояние ожидания выбора статистики
+    statistics_list_view = State()  # Состояние просмотра списка записей, у которых есть данные
+    specific_statistics_list_view = State()  # Состояние просмотра списка конкретных статистик
+    specific_statistics_view = State()  # Состояние просмотра конкретной статистики
+    user_test_statistics_view = State()  # состояние просмотра конкретной статистики
     confirmation = State()  # Состояние подтверждения чего-либо
 
 

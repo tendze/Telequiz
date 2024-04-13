@@ -3,15 +3,16 @@ from .config import mysql_db_name, mysql_db_username, mysql_db_password, mysql_h
 from classes.question import Question
 from enum import Enum
 from encrypting.question_encripting import encrypt_text, decrypt_bytes
+from collections import defaultdict
 
 
-# Класс, представляющий квиз/тест
+# Служебный класс, представляющий квиз/тест
 class RecordTypes(Enum):
     Quiz = 'Q'
     Test = 'T'
 
 
-# Класс, представляющий статус сессии квиза
+# Служебный ласс, представляющий статус сессии квиза
 class QuizStatus(Enum):
     Waiting = 'Waiting'
     InProcess = 'InProcess'
@@ -83,22 +84,26 @@ async def initialize_db():
             create_quiz_statistics_table_query = "CREATE TABLE IF NOT EXISTS Quiz_statistics(" \
                                                  "id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT," \
                                                  "tg_id BIGINT UNSIGNED NOT NULL," \
+                                                 "host_tg_id BIGINT UNSIGNED NOT NULL," \
                                                  "record_id INT UNSIGNED," \
                                                  "nickname VARCHAR(30)," \
                                                  "record_name VARCHAR(100)," \
-                                                 "score TINYINT UNSIGNED," \
-                                                 "start_time VARCHAR(100)" \
+                                                 "score DOUBLE," \
+                                                 "max_score TINYINT UNSIGNED," \
+                                                 "start_time VARCHAR(100)," \
+                                                 "session_id INT UNSIGNED" \
                                                  ")"
             create_test_statistics_table_query = "CREATE TABLE IF NOT EXISTS Test_statistics(" \
                                                  "id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT," \
                                                  "tg_id BIGINT UNSIGNED NOT NULL," \
+                                                 "host_tg_id BIGINT UNSIGNED NOT NULL," \
                                                  "record_id INT UNSIGNED," \
                                                  "nickname VARCHAR(129)," \
                                                  "record_name VARCHAR(100)," \
-                                                 "score TINYINT UNSIGNED," \
+                                                 "score DOUBLE," \
+                                                 "max_score TINYINT UNSIGNED," \
                                                  "start_time VARCHAR(100)" \
                                                  ")"
-
             cursor.execute(create_users_table_query)
             cursor.execute(create_questions_table_query)
             cursor.execute(create_variants_table_query)
@@ -290,6 +295,117 @@ async def get_user_record_info_by_id(id_: int) -> dict:
         with conn.cursor() as cursor:
             cursor.execute("SELECT * FROM User WHERE record_id = %s LIMIT 1", id_)
             return cursor.fetchone()
+
+
+# Добавление статистики
+async def add_statistics(
+        type_: RecordTypes,
+        participant_tg_id: int,
+        host_tg_id: int,
+        record_id: int,
+        nickname: str,
+        record_name: str,
+        score: float,
+        max_score: int,
+        start_time: str,
+        session_id: int = 0,
+):
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            tpl = (
+                participant_tg_id,
+                host_tg_id,
+                record_id,
+                nickname,
+                record_name,
+                score,
+                max_score,
+                start_time,
+            )
+            if type_ == RecordTypes.Test:
+                cursor.execute(
+                    "INSERT INTO test_statistics(tg_id, host_tg_id, record_id, nickname, record_name, score, max_score,"
+                    "start_time) "
+                    " VALUES(%s, %s, %s, %s, %s, %s, %s, %s)",
+                    tpl
+                )
+            else:
+                tpl = tpl + (session_id, )
+                cursor.execute(
+                    "INSERT INTO quiz_statistics(tg_id, host_tg_id, record_id, nickname, record_name, score, max_score,"
+                    "start_time, session_id)"
+                    " VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    tpl
+                )
+            conn.commit()
+
+
+async def get_statistics_info_by_id(tg_host_id: int, type_: RecordTypes) -> list[dict]:
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                f"SELECT * FROM {'quiz_statistics' if type_ == RecordTypes.Quiz else 'test_statistics'} "
+                f"WHERE host_tg_id = %s",
+                tg_host_id
+            )
+            return cursor.fetchall()
+
+
+async def get_record_name_by_id(record_id: int) -> str:
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT name FROM user WHERE record_id = %s",
+                record_id
+            )
+            return cursor.fetchone()['name']
+
+
+async def set_new_deadline(record_id: int, deadline: str):
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "UPDATE User SET deadline = %s WHERE record_id = %s",
+                (deadline, record_id)
+            )
+            conn.commit()
+
+
+async def set_new_time_limit(record_id: int, seconds: int):
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "UPDATE User SET time_limit = %s WHERE record_id = %s",
+                (seconds, record_id)
+            )
+            conn.commit()
+
+
+async def delete_statistics_by_session_id(type_: RecordTypes, session_id: int = None, test_stat_id: int = None):
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            if type_ == RecordTypes.Quiz:
+                cursor.execute("DELETE FROM quiz_statistics WHERE session_id = %s", session_id)
+            else:
+                cursor.execute("DELETE FROM test_statistics WHERE id = %s", test_stat_id)
+            conn.commit()
+
+
+async def get_nickname_by_id(type_: RecordTypes, id_: int):
+    conn = db_connection(mysql_db_name)
+    with conn:
+        with conn.cursor() as cursor:
+            if type_ == RecordTypes.Quiz:
+                cursor.execute("SELECT nickname FROM quiz_statistics WHERE id = %s", id_)
+            else:
+                cursor.execute("SELECT nickname FROM test_statistics WHERE id = %s", id_)
+            return cursor.fetchone()['nickname']
 
 
 # Получить последний id, вставленное в таблицу <table>

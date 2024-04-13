@@ -3,15 +3,16 @@ from aiogram.filters import StateFilter, Command
 from aiogram.types import ContentType, Message, ReplyKeyboardRemove, CallbackQuery, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 
-from database.db_services import insert_questions, RecordTypes
+from database.db_services import insert_questions, RecordTypes, set_new_time_limit
 from classes.question import Question
 from lexicon.LEXICON_RU import LEXICON
 from keyboards.menu_keyboards import main_menu_markup
 from services.inline_keyboard_services import time_limit_markup
-from states.states import CreateQuizOrTestFSM
+from states.states import CreateQuizOrTestFSM, MainMenuFSM
+from .quiz_and_test_view_handlers import process_record_press
 from aiogram_dialog import DialogManager, StartMode
 from keyboards.calendar_keyboard import calendar_dialog
-import mydatetime
+from factories import user_records
 import json
 
 rt = Router()
@@ -34,8 +35,7 @@ async def web_app(message: Message, state: FSMContext, dialog_manager: DialogMan
         await state.set_state(CreateQuizOrTestFSM.get_time_limit_state)
         return
     try:
-        await message.answer(text=f"Тест успешно создан!\n"
-                                  f"Пожалуйста, выберите дедлайн для этого теста",
+        await message.answer(text=f"Пожалуйста, выберите дедлайн для этого теста",
                              reply_markup=ReplyKeyboardRemove())
         await state.set_state(CreateQuizOrTestFSM.get_deadline_state)
         await state.update_data(state_to_switch=CreateQuizOrTestFSM.deadline_confirmation_state)
@@ -53,6 +53,19 @@ async def process_ready_press(cb: CallbackQuery, state: FSMContext):
     timer_info = cb.message.reply_markup.inline_keyboard[0][2].text.split()
     seconds = int(timer_info[0])
     data = await state.get_data()
+    if data.get('change_time_limit', False):
+        record_name = data['record_name']
+        record_id = data['record_id']
+        await state.set_state(MainMenuFSM.q_or_t_list_view)
+        await set_new_time_limit(record_id=record_id, seconds=seconds)
+        await state.update_data(change_time_limit=False)
+        await process_record_press(
+            cb=cb,
+            state=state,
+            callback_data=user_records.UserRecordsFactory(record_id=record_id, type_='Q'),
+            record_name=record_name
+        )
+        return
     try:
         await insert_questions(user_tg_id=cb.from_user.id,
                                name=data['name'],
@@ -128,4 +141,6 @@ async def process_yes_button_press(cb: CallbackQuery, state: FSMContext):
         deadline=parsed_deadline
     )
     await state.clear()
+    await cb.answer(text='Тест успешно создан!')
+    await cb.message.delete()
     await cb.message.answer(text=LEXICON['main_menu'], reply_markup=main_menu_markup)

@@ -4,6 +4,7 @@ from classes.quiz_participant import QuizParticipant
 from services.inline_keyboard_services import *
 from keyboards.menu_keyboards import main_menu_markup
 from bot import bot
+import logging
 
 
 # Базовый класс-наблюдатель за квизом
@@ -18,8 +19,10 @@ class BaseQuizSessionObserver:
             message_id: int,
             host_state: FSMContext,
             session_id: int,
+            quiz_id: int,
+            start_time: str,
             quiz_name: str = None,
-            timer_message_id: int = None
+            timer_message_id: int = None,
     ):
         if code not in self.quiz_subscribers:
             self.quiz_subscribers[code] = dict()
@@ -32,7 +35,9 @@ class BaseQuizSessionObserver:
             user_state=host_state,
             timer_message_id=timer_message_id
         )
+        self.quiz_subscribers[code]['record_id'] = quiz_id
         self.quiz_subscribers[code]['quiz_name'] = quiz_name
+        self.quiz_subscribers[code]['start_time'] = start_time
 
     async def add_participant_subscriber(
             self,
@@ -67,15 +72,18 @@ class BaseQuizSessionObserver:
         participants_list: list[QuizParticipant] = await self.get_all_participants(code=code)
         for participant in participants_list:
             await participant.user_state.clear()
-            await bot.delete_message(chat_id=participant.chat_id,
-                                     message_id=participant.message_id)
-            await bot.delete_message(chat_id=participant.chat_id,
-                                     message_id=participant.timer_message_id)
-            await bot.send_message(text=LEXICON['host_canceled_quiz'],
-                                   chat_id=participant.chat_id)
-            await bot.send_message(text=LEXICON['main_menu'],
-                                   reply_markup=main_menu_markup,
-                                   chat_id=participant.chat_id)
+            try:
+                await bot.delete_message(chat_id=participant.chat_id,
+                                         message_id=participant.message_id)
+                await bot.delete_message(chat_id=participant.chat_id,
+                                         message_id=participant.timer_message_id)
+                await bot.send_message(text=LEXICON['host_canceled_quiz'],
+                                       chat_id=participant.chat_id)
+                await bot.send_message(text=LEXICON['main_menu'],
+                                       reply_markup=main_menu_markup,
+                                       chat_id=participant.chat_id)
+            except Exception as e:
+                logging.info(e)
         del self.quiz_subscribers[code]
 
     async def notify_subscribers(self, code):

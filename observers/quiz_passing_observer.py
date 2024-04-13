@@ -1,7 +1,6 @@
 from .base_quiz_observer import BaseQuizSessionObserver
 from classes.quiz_participant import QuizParticipant
 from services.inline_keyboard_services import *
-from classes.question import Question
 from keyboards.menu_keyboards import main_menu_markup
 from database.db_services import *
 from bot import bot
@@ -35,9 +34,13 @@ class QuizPassingObserver(BaseQuizSessionObserver):
         participants_list: list[QuizParticipant] = await quiz_passing_observer.get_all_participants(code=code)
         questions: list[Question] = quiz_passing_observer.quiz_subscribers[code]['questions']
         user_results: dict[int, QuizParticipant] = dict()
+        session_id: int = quiz_passing_observer.quiz_subscribers[code]['session_id']
+        quiz_id = quiz_passing_observer.quiz_subscribers[code]['record_id']
+        quiz_name = quiz_passing_observer.quiz_subscribers[code]['quiz_name']
+        start_time = quiz_passing_observer.quiz_subscribers[code]['start_time']
         for participant in participants_list:
             user_result = round(
-                utils.quiz_utils.get_stats(
+                utils.quiz_utils.get_score_by_stats(
                     questions=questions,
                     user_answers=self.quiz_subscribers[code]['user_answers'].get(participant.chat_id, dict())
                 ),
@@ -61,6 +64,18 @@ class QuizPassingObserver(BaseQuizSessionObserver):
                 reply_markup=main_menu_markup,
                 chat_id=participant.chat_id,
             )
+            await add_statistics(
+                type_=RecordTypes.Quiz,
+                participant_tg_id=participant.chat_id,
+                host_tg_id=self.quiz_subscribers[code]['host'].chat_id,
+                record_id=quiz_id,
+                nickname=participant.nickname,
+                record_name=quiz_name,
+                score=user_result,
+                max_score=len(questions),
+                start_time=start_time,
+                session_id=session_id
+            )
 
         host: QuizParticipant = self.quiz_subscribers[code]['host']
         await bot.delete_message(
@@ -76,7 +91,7 @@ class QuizPassingObserver(BaseQuizSessionObserver):
         await bot.send_message(
             text=LEXICON['main_menu'],
             reply_markup=main_menu_markup,
-            chat_id=host.chat_id,
+            chat_id=host.chat_id
         )
         await delete_code(record_id=self.quiz_subscribers[code]['session_id'])
         del self.quiz_subscribers[code]
@@ -123,7 +138,7 @@ class QuizPassingObserver(BaseQuizSessionObserver):
             return False
         self.quiz_subscribers[code]['can_answer'] = True
         host: QuizParticipant = self.quiz_subscribers[code]['host']
-        variant_buttons = create_quiz_variants_buttons(questions[question_index])
+        variant_buttons = create_variants_buttons(questions[question_index])
         host_markup = InlineKeyboardMarkup(
             inline_keyboard=variant_buttons + [line_button_row, next_question_row, finish_quiz_button_row]
         )
