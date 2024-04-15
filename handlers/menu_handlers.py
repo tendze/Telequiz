@@ -347,9 +347,9 @@ async def process_record_statistics_view_press(
 
     if callback_data.type_ == 'T':
         stat_txt = f'<b>{record_name}</b>\n' \
-               f'<b>Общая статистика:</b>\n' \
-               f'Количество людей, прошедших тест: <b>{participants_count} чел.</b>\n' \
-               f'Общий средний балл: <b>{avg_score:.3f} из {max_score}</b>'
+                   f'<b>Общая статистика:</b>\n' \
+                   f'Количество людей, прошедших тест: <b>{participants_count} чел.</b>\n' \
+                   f'Общий средний балл: <b>{avg_score:.3f} из {max_score}</b>'
     else:
         stat_txt = f'<b>{record_name}</b>\n' \
                    f'<b>Общая статистика:</b>\n' \
@@ -407,7 +407,7 @@ async def process_specific_statistics_button_press(
                 max_score = attempt['max_score']
                 attempts.append(attempt['score'])
         await state.update_data(specific_stats=attempts)
-        attempts_text = "\n".join([f'{i+1}. {attempts[i]} б.' for i in range(len(attempts))])
+        attempts_text = "\n".join([f'{i + 1}. {attempts[i]} б.' for i in range(len(attempts))])
         await cb.message.edit_text(
             text=f'<b>{record_name}</b>\n'
                  f'<b>{nickname}</b>\n'
@@ -491,7 +491,12 @@ async def process_go_back_statistics_view_button_press(cb: CallbackQuery, state:
     await process_record_statistics_view_press(cb=cb, state=state, callback_data=data['user_record_cb_data'])
 
 
-@rt.callback_query(F.data == 'forward', ~StateFilter(MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view))
+@rt.callback_query(
+    F.data == 'forward',
+    ~StateFilter(
+        MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view,  CreateQuizOrTestFSM
+    )
+)
 async def process_forward_page_button_press(cb: CallbackQuery, state: FSMContext):
     state_str = await state.get_state()
     data = await state.get_data()
@@ -544,7 +549,12 @@ async def process_forward_page_button_press(cb: CallbackQuery, state: FSMContext
     await cb.answer()
 
 
-@rt.callback_query(F.data == 'backward', ~StateFilter(MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view))
+@rt.callback_query(
+    F.data == 'backward',
+    ~StateFilter(
+        MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view,  CreateQuizOrTestFSM
+    )
+)
 async def process_forward_page_button_press(cb: CallbackQuery, state: FSMContext):
     state_str = await state.get_state()
     data = await state.get_data()
