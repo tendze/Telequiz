@@ -1,8 +1,6 @@
 import asyncio
 import logging
 
-from aiogram import Dispatcher
-
 from keyboards.set_commands import set_main_commands
 from handlers import (
     menu_handlers,

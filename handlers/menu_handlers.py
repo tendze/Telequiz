@@ -2,7 +2,8 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandStart, StateFilter, CommandObject
 from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, BufferedInputFile
+from aiogram.utils.chat_action import ChatActionSender
 
 from keyboards.menu_keyboards import main_menu_markup, my_profile_markup
 from states.states import *
@@ -17,7 +18,6 @@ from handlers.quiz_waiting_room_handlers import process_deep_code_retrieval
 from math import ceil
 import utils
 from factories import user_records, statistics_record
-import sys
 
 rt = Router()
 
@@ -28,7 +28,7 @@ rt = Router()
         deep_link=True,
         deep_link_encoded=True
     ),
-    StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
+    StateFilter(default_state, MainMenuFSM)
 )
 async def process_start_command_with_test_link(message: Message, state: FSMContext, command: CommandObject):
     try:
@@ -81,7 +81,7 @@ async def process_start_command_with_test_link(message: Message, state: FSMConte
         deep_link=True,
         deep_link_encoded=False
     ),
-    StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
+    StateFilter(default_state, MainMenuFSM)
 )
 async def process_start_command_with_code(message: Message, state: FSMContext, command: CommandObject):
     try:
@@ -108,7 +108,7 @@ async def process_start_command_with_code(message: Message, state: FSMContext, c
 # Обработка команды /start.
 @rt.message(
     CommandStart(),
-    StateFilter(default_state, MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view, MainMenuFSM.confirmation)
+    StateFilter(default_state, MainMenuFSM)
 )
 async def process_start_command(message: Message, state: FSMContext):
     try:
@@ -386,6 +386,7 @@ async def process_specific_statistics_button_press(
     session = stats[record_name]
     if callback_data.type_ == 'Q':
         stats = utils.quiz_utils.get_quiz_stats_by_session_info(session[callback_data.session_id])
+        await state.update_data(specific_stats=stats)
         max_score = stats.max_score
         participant_list_str = "\n".join([f'<b>{i + 1}. {stats.participants[i][0]}</b> |' \
                                           f' <b>{(stats.participants[i][1])} из {max_score} |'
@@ -395,7 +396,7 @@ async def process_specific_statistics_button_press(
             text=f'<b>{record_name}</b>\n'
                  f'Список участников:\n'
                  f'<b>{participant_list_str}</b>',
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[delete_button_row, back_button_row])
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[get_stat_file_row, delete_button_row, back_button_row])
         )
     else:
         max_score = 0
@@ -405,6 +406,7 @@ async def process_specific_statistics_button_press(
             if attempt['nickname'] == nickname:
                 max_score = attempt['max_score']
                 attempts.append(attempt['score'])
+        await state.update_data(specific_stats=attempts)
         attempts_text = "\n".join([f'{i+1}. {attempts[i]} б.' for i in range(len(attempts))])
         await cb.message.edit_text(
             text=f'<b>{record_name}</b>\n'
@@ -418,6 +420,24 @@ async def process_specific_statistics_button_press(
 
     await state.update_data(stats_record_cb_data=callback_data)
     await state.set_state(MainMenuFSM.specific_statistics_view)
+
+
+@rt.callback_query(F.data == 'get_stat_file', StateFilter(MainMenuFSM.specific_statistics_view))
+async def process_get_stat_file_button_press(cb: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    spec_data = data['specific_stats']
+    record_type = data['record_type']
+    if record_type == 'Q':
+        columns = ['Имя', f'Балл из {spec_data.max_score}', 'Балл из 10']
+        rows: list[list] = []
+        for p in spec_data.participants:
+            rows.append([p[0], p[1], p[1] * 10 / spec_data.max_score])
+        bytes_io = utils.get_stat_xlsx_file(columns=columns, data=rows, numerate=True)
+        async with ChatActionSender.upload_document(chat_id=cb.message.chat.id, bot=cb.message.bot):
+            await cb.message.answer_document(
+                document=BufferedInputFile(file=bytes_io.read(), filename="stats.xlsx")
+            )
+    await cb.answer()
 
 
 @rt.callback_query(F.data == 'delete', StateFilter(MainMenuFSM.specific_statistics_view))
@@ -471,7 +491,7 @@ async def process_go_back_statistics_view_button_press(cb: CallbackQuery, state:
     await process_record_statistics_view_press(cb=cb, state=state, callback_data=data['user_record_cb_data'])
 
 
-@rt.callback_query(F.data == 'forward', ~StateFilter(MainMenuFSM.q_or_t_list_view))
+@rt.callback_query(F.data == 'forward', ~StateFilter(MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view))
 async def process_forward_page_button_press(cb: CallbackQuery, state: FSMContext):
     state_str = await state.get_state()
     data = await state.get_data()
@@ -524,7 +544,7 @@ async def process_forward_page_button_press(cb: CallbackQuery, state: FSMContext
     await cb.answer()
 
 
-@rt.callback_query(F.data == 'backward', ~StateFilter(MainMenuFSM.q_or_t_list_view))
+@rt.callback_query(F.data == 'backward', ~StateFilter(MainMenuFSM.q_or_t_list_view, MainMenuFSM.q_or_t_view))
 async def process_forward_page_button_press(cb: CallbackQuery, state: FSMContext):
     state_str = await state.get_state()
     data = await state.get_data()

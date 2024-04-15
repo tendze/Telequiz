@@ -1,1 +1,1 @@
-statistics_list_height = 5
+statistics_list_height = 10

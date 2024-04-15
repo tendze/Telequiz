@@ -26,6 +26,7 @@ nickname_confirmation_with_username_rows = [[InlineKeyboardButton(text=LEXICON['
 nickname_confirmation_without_username_rows = [[InlineKeyboardButton(text=LEXICON['use_my_name'],
                                                                      callback_data='use_my_name')],
                                                cancel_button_row]
+get_stat_file_row = [InlineKeyboardButton(text=LEXICON['generate_stat_file'], callback_data='get_stat_file')]
 line_button_row = [InlineKeyboardButton(text='―――――――――――', callback_data='just_line')]
 finish_quiz_button_row = [InlineKeyboardButton(text=LEXICON['finish_quiz'], callback_data='finish_quiz')]
 finish_test_button_row = [InlineKeyboardButton(text=LEXICON['finish_test'], callback_data='finish_test')]
@@ -90,7 +91,6 @@ def create_question_view_inline_markup(
         result.append(edit_button_row)
     elif edit_mode:
         result.append(cancel_edit_button_row)
-    result.append(new_question_button_row)
     if delete_question_button_visible:
         result.append(delete_question_button_row)
     result.append(cancel_button_row)
